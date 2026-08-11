@@ -5,7 +5,7 @@ import sitemap from '@astrojs/sitemap';
 // 部署后把这里改成你的正式网址（例如 https://my-blog.pages.dev 或你的自定义域名）
 // 这个地址用于生成 RSS、站点地图和绝对链接。
 export default defineConfig({
-  site: 'https://example.pages.dev',
+  site: 'https://zh-blog.1498690093.workers.dev/',
   integrations: [sitemap()],
   markdown: {
     shikiConfig: {
