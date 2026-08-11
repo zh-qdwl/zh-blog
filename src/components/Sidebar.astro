@@ -1,7 +1,11 @@
 ---
-// 侧栏容器。widget 在 Task 5 接入。
+import ProfileCard from './widgets/ProfileCard.astro';
+import CategoryList from './widgets/CategoryList.astro';
+import TagCloud from './widgets/TagCloud.astro';
 ---
 
 <aside class="sidebar">
-  <slot />
+  <ProfileCard />
+  <CategoryList />
+  <TagCloud />
 </aside>

@@ -1,0 +1,31 @@
+---
+import { getTags } from '../../lib/posts';
+const tags = await getTags();
+---
+
+<div class="card widget widget-tags">
+  <p class="widget-title">标签</p>
+  <div class="cloud">
+    {tags.map((t) => (
+      <a class="tag" href={`/tags/${encodeURIComponent(t.name)}/`}>{t.name}</a>
+    ))}
+  </div>
+</div>
+
+<style>
+  .widget-tags {
+    padding: 20px;
+  }
+  .widget-title {
+    margin: 0 0 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-soft);
+  }
+  .cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>

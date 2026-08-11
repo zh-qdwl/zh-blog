@@ -1,0 +1,43 @@
+---
+import { AUTHOR, SITE_DESCRIPTION, AVATAR, SOCIAL } from '../../consts';
+---
+
+<div class="card widget widget-profile">
+  <img class="avatar" src={AVATAR} alt="头像" width="72" height="72" loading="lazy" />
+  <p class="name">{AUTHOR}</p>
+  <p class="bio">{SITE_DESCRIPTION}</p>
+  <div class="links">
+    {SOCIAL.github && <a href={SOCIAL.github} target="_blank" rel="noopener">GitHub</a>}
+    {SOCIAL.email && <a href={`mailto:${SOCIAL.email}`}>Email</a>}
+    {SOCIAL.rss && <a href={SOCIAL.rss}>RSS</a>}
+  </div>
+</div>
+
+<style>
+  .widget-profile {
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--brand);
+  }
+  .name {
+    margin: 12px 0 4px;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .bio {
+    margin: 0 0 16px;
+    color: var(--text-soft);
+    font-size: 0.88rem;
+  }
+  .links {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    font-size: 0.85rem;
+  }
+</style>
