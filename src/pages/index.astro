@@ -1,37 +1,32 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import FormattedDate from '../components/FormattedDate.astro';
-import { SITE_DESCRIPTION } from '../consts';
+import Hero from '../components/Hero.astro';
+import PostCard from '../components/PostCard.astro';
+import { getSortedPosts } from '../lib/posts';
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-  .slice(0, 5);
+const posts = (await getSortedPosts()).slice(0, 5);
 ---
 
-<BaseLayout>
-  <section class="hero">
-    <h1>你好，欢迎来到我的博客 👋</h1>
-    <p>{SITE_DESCRIPTION}</p>
-  </section>
+<BaseLayout layout="sidebar">
+  <Hero slot="hero" />
 
   <p class="section-title">最新文章</p>
-  <ul class="post-list">
-    {posts.map((post) => (
-      <li>
-        <a class="post-item" href={`/blog/${post.id}/`}>
-          <h3>{post.data.title}</h3>
-          <p>{post.data.description}</p>
-          <div class="post-meta">
-            <FormattedDate date={post.data.pubDate} />
-            {post.data.tags.map((tag) => <span class="tag">{tag}</span>)}
-          </div>
-        </a>
-      </li>
-    ))}
-  </ul>
+  <div class="post-list">
+    {posts.map((post, i) => <PostCard post={post} index={i} />)}
+  </div>
 
-  <p style="margin-top:24px">
-    <a href="/blog">查看全部文章 →</a>
+  <p class="more">
+    <a class="btn" href="/blog">查看全部文章 →</a>
   </p>
 </BaseLayout>
+
+<style>
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .more {
+    margin: 28px 0 0;
+  }
+</style>
