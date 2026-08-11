@@ -1,0 +1,243 @@
+---
+// 零依赖搜索。索引在首次打开面板时才拉取，不影响首屏。
+---
+
+<div id="search-overlay" class="overlay" hidden>
+  <div
+    class="panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="搜索文章"
+  >
+    <div class="field">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <input
+        id="search-input"
+        type="search"
+        placeholder="搜索标题、标签或正文…"
+        autocomplete="off"
+        aria-label="搜索关键词"
+      />
+      <kbd>Esc</kbd>
+    </div>
+    <ul id="search-results" class="results"></ul>
+    <p id="search-empty" class="empty" hidden>没有匹配的文章。</p>
+  </div>
+</div>
+
+<style>
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 12vh 20px 20px;
+    background: rgba(17, 24, 39, 0.45);
+    backdrop-filter: blur(3px);
+  }
+  .overlay[hidden] {
+    display: none;
+  }
+  .panel {
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-lift);
+    overflow: hidden;
+  }
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-soft);
+  }
+  .field input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+  }
+  kbd {
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg-soft);
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+  }
+  .results {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    max-height: 52vh;
+    overflow-y: auto;
+  }
+  .results:empty {
+    display: none;
+  }
+  .results a {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: var(--text);
+  }
+  .results a:hover,
+  .results li[aria-selected='true'] a {
+    background: var(--brand-soft);
+    text-decoration: none;
+  }
+  .results .t {
+    display: block;
+    font-weight: 600;
+    font-size: 0.96rem;
+  }
+  .results .d {
+    display: block;
+    color: var(--text-soft);
+    font-size: 0.84rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .empty {
+    margin: 0;
+    padding: 20px 16px;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    text-align: center;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const overlay = document.getElementById('search-overlay');
+    const input = document.getElementById('search-input');
+    const list = document.getElementById('search-results');
+    const empty = document.getElementById('search-empty');
+    const openBtn = document.getElementById('search-open');
+    if (!overlay || !input || !list || !empty) return;
+
+    let index = null; // 懒加载的索引
+    let hits = [];
+    let cursor = 0;
+    let lastFocus = null;
+
+    async function ensureIndex() {
+      if (index) return index;
+      const res = await fetch('/search.json');
+      index = await res.json();
+      return index;
+    }
+
+    function score(post, q) {
+      let s = 0;
+      if (post.title.toLowerCase().includes(q)) s += 10;
+      if (post.tags.some((t) => t.toLowerCase().includes(q))) s += 5;
+      if (post.category.toLowerCase().includes(q)) s += 5;
+      if (post.description.toLowerCase().includes(q)) s += 3;
+      if (post.text.toLowerCase().includes(q)) s += 1;
+      return s;
+    }
+
+    function render() {
+      list.innerHTML = '';
+      hits.forEach((p, i) => {
+        const li = document.createElement('li');
+        if (i === cursor) li.setAttribute('aria-selected', 'true');
+        const a = document.createElement('a');
+        a.href = p.url;
+        const t = document.createElement('span');
+        t.className = 't';
+        t.textContent = p.title;
+        const d = document.createElement('span');
+        d.className = 'd';
+        d.textContent = p.description;
+        a.append(t, d);
+        li.append(a);
+        list.append(li);
+      });
+      const q = input.value.trim();
+      empty.hidden = !(q.length > 0 && hits.length === 0);
+    }
+
+    async function search() {
+      const q = input.value.trim().toLowerCase();
+      if (!q) {
+        hits = [];
+        cursor = 0;
+        render();
+        return;
+      }
+      const data = await ensureIndex();
+      hits = data
+        .map((p) => ({ p, s: score(p, q) }))
+        .filter((x) => x.s > 0)
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 10)
+        .map((x) => x.p);
+      cursor = 0;
+      render();
+    }
+
+    function open() {
+      lastFocus = document.activeElement;
+      overlay.hidden = false;
+      document.body.style.overflow = 'hidden';
+      input.focus();
+      ensureIndex();
+    }
+
+    function close() {
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+      input.value = '';
+      hits = [];
+      render();
+      // 焦点还原到触发按钮
+      if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+    }
+
+    openBtn?.addEventListener('click', open);
+    input.addEventListener('input', search);
+
+    // 点遮罩关闭，点面板内部不关
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const isOpen = !overlay.hidden;
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        isOpen ? close() : open();
+        return;
+      }
+      if (!isOpen) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (hits.length) cursor = (cursor + 1) % hits.length;
+        render();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (hits.length) cursor = (cursor - 1 + hits.length) % hits.length;
+        render();
+      } else if (e.key === 'Enter' && hits[cursor]) {
+        e.preventDefault();
+        window.location.href = hits[cursor].url;
+      }
+    });
+  })();
+</script>
