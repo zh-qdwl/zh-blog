@@ -1,0 +1,15 @@
+---
+import { AUTHOR, SOCIAL } from '../consts';
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <span>© {year} {AUTHOR}. Built with Astro.</span>
+    <div class="footer-social">
+      {SOCIAL.github && <a href={SOCIAL.github} target="_blank" rel="noopener">GitHub</a>}
+      {SOCIAL.email && <a href={SOCIAL.email}>Email</a>}
+      {SOCIAL.rss && <a href={SOCIAL.rss}>RSS</a>}
+    </div>
+  </div>
+</footer>

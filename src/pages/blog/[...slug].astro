@@ -1,0 +1,35 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: post,
+  }));
+}
+
+const post = Astro.props;
+const { Content } = await render(post);
+---
+
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <a href="/blog" class="back-link">← 返回文章列表</a>
+  <article>
+    <header class="article-header">
+      <h1>{post.data.title}</h1>
+      <div class="post-meta">
+        <FormattedDate date={post.data.pubDate} />
+        {post.data.updatedDate && (
+          <span>· 更新于 <FormattedDate date={post.data.updatedDate} /></span>
+        )}
+        {post.data.tags.map((tag) => <span class="tag">{tag}</span>)}
+      </div>
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>
