@@ -150,6 +150,26 @@ a.tag:hover {
   color: var(--text-soft);
 }
 
+/* 列表类页面（标签/分类/归档/博客列表）的大标题 */
+.page-title {
+  margin: 0 0 24px;
+  font-size: 1.9rem;
+}
+
+/* 标签/分类详情页顶部的返回面包屑 */
+.crumb {
+  margin: 0 0 4px;
+  font-size: 0.88rem;
+  color: var(--text-soft);
+}
+
+/* 文章卡片纵向列表容器 */
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 /* ===== 文章正文 ===== */
 .prose {
   font-size: 1.02rem;
