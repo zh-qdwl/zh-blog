@@ -1,0 +1,109 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getArchive } from '../lib/posts';
+
+const groups = await getArchive();
+const total = groups.reduce((n, g) => n + g.posts.length, 0);
+
+function md(date: Date): string {
+  return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+---
+
+<BaseLayout title="归档" description="按年份浏览全部文章" layout="sidebar">
+  <h1 class="page-title">归档 <span class="count">{total} 篇</span></h1>
+
+  {groups.map((group) => (
+    <section class="year-group">
+      <h2 class="year">{group.year}</h2>
+      <ul class="timeline">
+        {group.posts.map((post) => (
+          <li>
+            <a href={`/blog/${post.id}/`}>
+              <time datetime={post.data.pubDate.toISOString()}>{md(post.data.pubDate)}</time>
+              <span class="title">{post.data.title}</span>
+              <span class="cat">{post.data.category}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</BaseLayout>
+
+<style>
+  .page-title {
+    margin: 0 0 28px;
+    font-size: 1.9rem;
+  }
+  .count {
+    color: var(--text-soft);
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .year-group {
+    margin-bottom: 32px;
+  }
+  .year {
+    margin: 0 0 8px;
+    font-size: 1.3rem;
+    color: var(--text-soft);
+  }
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 16px;
+    border-left: 2px solid var(--border);
+  }
+  .timeline li a {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    color: var(--text);
+    position: relative;
+  }
+  /* 时间线上的圆点 */
+  .timeline li a::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 17px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .timeline li a:hover {
+    background: var(--bg-soft);
+    text-decoration: none;
+  }
+  .timeline li a:hover::before {
+    background: var(--brand);
+  }
+  .timeline time {
+    flex-shrink: 0;
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+  }
+  .title {
+    flex: 1;
+    min-width: 0;
+  }
+  .timeline li a:hover .title {
+    color: var(--link);
+  }
+  .cat {
+    flex-shrink: 0;
+    color: var(--text-soft);
+    font-size: 0.8rem;
+  }
+
+  @media (max-width: 560px) {
+    .cat {
+      display: none;
+    }
+  }
+</style>
