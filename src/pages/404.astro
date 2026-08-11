@@ -4,7 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <BaseLayout title="页面走丢了" layout="plain">
   <div class="notfound">
-    <p class="code">404</p>
+    <h1 class="code">404</h1>
     <p class="hint">这个页面不存在，或者已经被移走了。</p>
     <a class="btn" href="/">← 回到首页</a>
   </div>
@@ -20,6 +20,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     font-size: clamp(3.5rem, 12vw, 6rem);
     font-weight: 800;
     line-height: 1;
+    /* h1 会继承全局标题的字间距，这里显式重置为 normal，
+       保证视觉效果与之前的 <p> 完全一致 */
+    letter-spacing: normal;
     /* 金黄渐变数字 */
     background: linear-gradient(135deg, var(--brand), var(--brand-strong));
     -webkit-background-clip: text;
