@@ -4,11 +4,17 @@ const year = new Date().getFullYear();
 ---
 
 <footer class="site-footer">
-  <div class="wrap footer-inner">
+  <div class="page footer-inner">
     <span>© {year} {AUTHOR}. Built with Astro.</span>
+    <!-- 归档与分类不进导航，这里做文字入口兜底 -->
+    <div class="footer-links">
+      <a href="/archive">归档</a>
+      <a href="/categories">分类</a>
+      <a href="/tags">标签</a>
+    </div>
     <div class="footer-social">
       {SOCIAL.github && <a href={SOCIAL.github} target="_blank" rel="noopener">GitHub</a>}
-      {SOCIAL.email && <a href={SOCIAL.email}>Email</a>}
+      {SOCIAL.email && <a href={`mailto:${SOCIAL.email}`}>Email</a>}
       {SOCIAL.rss && <a href={SOCIAL.rss}>RSS</a>}
     </div>
   </div>
