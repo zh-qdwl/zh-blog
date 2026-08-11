@@ -1,0 +1,141 @@
+---
+import type { Post } from '../lib/posts';
+import FormattedDate from './FormattedDate.astro';
+
+interface Props {
+  post: Post;
+  /** 列表中的序号，用于入场动画错峰 */
+  index?: number;
+}
+const { post, index = 0 } = Astro.props;
+const { title, description, pubDate, tags, category, cover, pinned } = post.data;
+
+// 无封面时用标题算一个色相做渐变兜底。
+// 刻意压在 28–58 的琥珀区间内，避免随机色相与金黄主色打架。
+const hash = [...title].reduce((acc, ch) => (acc * 31 + ch.codePointAt(0)!) % 997, 7);
+const hue = 28 + (hash % 31);
+---
+
+<article class="card post-card" style={`--i:${index}; --cover-hue:${hue};`}>
+  <a class="cover" href={`/blog/${post.id}/`} aria-hidden="true" tabindex="-1">
+    {cover ? (
+      <img src={cover} alt="" loading="lazy" />
+    ) : (
+      <span class="cover-fallback"></span>
+    )}
+  </a>
+  <div class="body">
+    <div class="head">
+      {pinned && <span class="pinned">置顶</span>}
+      <a class="category" href={`/categories/${encodeURIComponent(category)}/`}>{category}</a>
+    </div>
+    <h3><a href={`/blog/${post.id}/`}>{title}</a></h3>
+    <p class="desc">{description}</p>
+    <div class="post-meta">
+      <FormattedDate date={pubDate} />
+      {tags.map((tag) => (
+        <a class="tag" href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a>
+      ))}
+    </div>
+  </div>
+</article>
+
+<style>
+  .post-card {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    overflow: hidden;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .post-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand);
+    box-shadow: var(--shadow-lift);
+  }
+
+  .cover {
+    display: block;
+    position: relative;
+    min-height: 150px;
+    background: var(--bg-soft);
+  }
+  .cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  /* 无封面兜底：琥珀区间渐变 + 网格纹理，与 Hero 同语言 */
+  .cover-fallback {
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 12px),
+      linear-gradient(
+        135deg,
+        hsl(var(--cover-hue) 85% 62%),
+        hsl(calc(var(--cover-hue) - 14) 75% 48%)
+      );
+  }
+
+  .body {
+    padding: 20px 22px;
+    min-width: 0;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .pinned {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--brand);
+    color: var(--brand-ink);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .category {
+    color: var(--text-soft);
+    font-size: 0.8rem;
+  }
+  .category:hover {
+    color: var(--link);
+    text-decoration: none;
+  }
+  h3 {
+    margin: 0 0 6px;
+    font-size: 1.18rem;
+  }
+  h3 a {
+    color: var(--text);
+  }
+  .post-card:hover h3 a {
+    color: var(--link);
+    text-decoration: none;
+  }
+  .desc {
+    margin: 0 0 12px;
+    color: var(--text-soft);
+    font-size: 0.93rem;
+    /* 最多两行，超出省略 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (max-width: 720px) {
+    .post-card {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cover {
+      min-height: 140px;
+    }
+    .body {
+      padding: 18px;
+    }
+  }
+</style>
