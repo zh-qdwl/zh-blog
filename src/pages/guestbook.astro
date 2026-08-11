@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Comments from '../components/Comments.astro';
+---
+
+<BaseLayout title="留言" description="留言与交流" layout="plain">
+  <article>
+    <header class="article-header">
+      <h1>留言</h1>
+      <p class="lead">路过留个脚印，或者聊聊你在折腾什么。</p>
+    </header>
+    <Comments />
+  </article>
+</BaseLayout>
+
+<style>
+  .article-header {
+    margin-bottom: 8px;
+  }
+  .article-header h1 {
+    font-size: 2rem;
+    margin: 0 0 8px;
+  }
+  .lead {
+    margin: 0;
+    color: var(--text-soft);
+  }
+</style>
