@@ -27,6 +27,21 @@ describe('stripMarkdown', () => {
     expect(stripMarkdown('**很重要**的事')).toBe('很重要的事');
   });
 
+  it('剥离成对的强调/删除线符号，保留单个 * 斜体', () => {
+    expect(stripMarkdown('**粗体**')).toBe('粗体');
+    expect(stripMarkdown('~~删除~~')).toBe('删除');
+    expect(stripMarkdown('*斜体*')).toBe('斜体');
+  });
+
+  it('不误删标识符中的下划线（非成对强调符号）', () => {
+    expect(stripMarkdown('请设置环境变量 API_KEY 和 NODE_ENV')).toBe(
+      '请设置环境变量 API_KEY 和 NODE_ENV'
+    );
+    expect(stripMarkdown('变量名 snake_case_name 不受影响')).toBe(
+      '变量名 snake_case_name 不受影响'
+    );
+  });
+
   it('压缩连续空白', () => {
     expect(stripMarkdown('甲\n\n\n乙   丙')).toBe('甲 乙 丙');
   });

@@ -17,11 +17,13 @@
         placeholder="搜索标题、标签或正文…"
         autocomplete="off"
         aria-label="搜索关键词"
+        aria-controls="search-results"
       />
       <kbd>Esc</kbd>
     </div>
-    <ul id="search-results" class="results"></ul>
-    <p id="search-empty" class="empty" hidden>没有匹配的文章。</p>
+    <ul id="search-results" class="results" role="listbox" aria-label="搜索结果"></ul>
+    <p id="search-status" class="sr-only" aria-live="polite"></p>
+    <p id="search-empty" class="empty" hidden aria-live="polite">没有匹配的文章。</p>
   </div>
 </div>
 
@@ -116,6 +118,18 @@
     font-size: 0.9rem;
     text-align: center;
   }
+  /* 仅供屏幕阅读器播报，视觉上不占空间 */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
 </style>
 
 <script is:inline>
@@ -124,19 +138,20 @@
     const input = document.getElementById('search-input');
     const list = document.getElementById('search-results');
     const empty = document.getElementById('search-empty');
+    const status = document.getElementById('search-status');
     const openBtn = document.getElementById('search-open');
-    if (!overlay || !input || !list || !empty) return;
+    if (!overlay || !input || !list || !empty || !status) return;
 
-    let index = null; // 懒加载的索引
+    let indexPromise = null; // 懒加载的索引请求（缓存 Promise 本身，而非其结果，避免并发重复 fetch）
     let hits = [];
     let cursor = 0;
     let lastFocus = null;
 
-    async function ensureIndex() {
-      if (index) return index;
-      const res = await fetch('/search.json');
-      index = await res.json();
-      return index;
+    function ensureIndex() {
+      if (!indexPromise) {
+        indexPromise = fetch('/search.json').then((res) => res.json());
+      }
+      return indexPromise;
     }
 
     function score(post, q) {
@@ -153,7 +168,8 @@
       list.innerHTML = '';
       hits.forEach((p, i) => {
         const li = document.createElement('li');
-        if (i === cursor) li.setAttribute('aria-selected', 'true');
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', i === cursor ? 'true' : 'false');
         const a = document.createElement('a');
         a.href = p.url;
         const t = document.createElement('span');
@@ -168,6 +184,8 @@
       });
       const q = input.value.trim();
       empty.hidden = !(q.length > 0 && hits.length === 0);
+      // 结果数量播报：有结果时提示条数；无结果时交给上面的空态段落播报，避免重复
+      status.textContent = q.length > 0 && hits.length > 0 ? `找到 ${hits.length} 篇` : '';
     }
 
     async function search() {
@@ -237,6 +255,19 @@
       } else if (e.key === 'Enter' && hits[cursor]) {
         e.preventDefault();
         window.location.href = hits[cursor].url;
+      } else if (e.key === 'Tab') {
+        // 焦点陷阱：面板内可聚焦元素只有搜索框和结果链接，Tab/Shift+Tab 在其中循环，
+        // 避免键盘用户跳到遮罩下方看不见的 Header/Sidebar/Footer 链接上
+        const focusables = [input, ...list.querySelectorAll('a')];
+        const currentIndex = focusables.indexOf(document.activeElement);
+        let nextIndex;
+        if (e.shiftKey) {
+          nextIndex = currentIndex <= 0 ? focusables.length - 1 : currentIndex - 1;
+        } else {
+          nextIndex = currentIndex === -1 || currentIndex === focusables.length - 1 ? 0 : currentIndex + 1;
+        }
+        e.preventDefault();
+        focusables[nextIndex].focus();
       }
     });
   })();
