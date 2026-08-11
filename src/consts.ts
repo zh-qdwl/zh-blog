@@ -3,10 +3,15 @@ export const SITE_TITLE = 'ZH 的博客';
 export const SITE_DESCRIPTION = '记录编程、技术与思考。';
 export const AUTHOR = 'ZH';
 
+// 头像。默认是自动生成的字母占位图，换成自己的照片时把文件放进 public/ 再改这里。
+export const AVATAR = '/avatar.svg';
+
 // 顶部导航
 export const NAV_LINKS = [
   { href: '/', label: '首页' },
   { href: '/blog', label: '文章' },
+  { href: '/tags', label: '标签' },
+  { href: '/guestbook', label: '留言' },
   { href: '/about', label: '关于' },
 ];
 
@@ -15,4 +20,18 @@ export const SOCIAL = {
   github: 'https://github.com/zh-qdwl',
   email: '1498690097@qq.com',
   rss: '/rss.xml',
+};
+
+// 评论系统。
+// provider = 'none'  → 文章底部和留言页渲染静态「交流」区块（当前）
+// provider = 'giscus' → 接 GitHub Discussions，需先把仓库设为 public、
+//                       开启 Discussions、安装 giscus app，然后填下面四项
+export const COMMENTS = {
+  provider: 'none' as 'none' | 'giscus',
+  giscus: {
+    repo: '',
+    repoId: '',
+    category: '',
+    categoryId: '',
+  },
 };

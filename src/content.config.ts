@@ -10,6 +10,12 @@ const blog = defineCollection({
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),
+    // 分类：一篇文章只属于一个分类，缺省归入「未分类」
+    category: z.string().default('未分类'),
+    // 封面图可选。缺省时列表卡片用 CSS 渐变兜底，不强制每篇配图。
+    cover: z.string().optional(),
+    // 置顶：列表页排在最前
+    pinned: z.boolean().default(false),
     draft: z.boolean().default(false),
   }),
 });

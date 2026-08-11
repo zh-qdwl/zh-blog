@@ -2,6 +2,7 @@
 title: 如何写一篇新文章
 description: 三步搞定：新建 Markdown 文件、填写文章信息、写正文。
 pubDate: 2026-08-10
+category: 教程
 tags: ['教程', '指南']
 ---
 
