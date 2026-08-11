@@ -1,0 +1,128 @@
+---
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+interface Props {
+  headings: Heading[];
+}
+const { headings } = Astro.props;
+// 只取 h2/h3，h4 以下过于零碎
+const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+---
+
+{items.length > 0 && (
+  <nav class="toc" aria-label="目录">
+    <p class="toc-title">目录</p>
+    <ul>
+      {items.map((h) => (
+        <li class={`depth-${h.depth}`}>
+          <a href={`#${h.slug}`} data-toc-link={h.slug}>{h.text}</a>
+        </li>
+      ))}
+    </ul>
+    <button class="to-top" type="button" aria-label="回到顶部">↑ 回到顶部</button>
+  </nav>
+)}
+
+<style>
+  .toc {
+    position: sticky;
+    top: 76px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    font-size: 0.88rem;
+  }
+  .toc-title {
+    margin: 0 0 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  li a {
+    display: block;
+    padding: 5px 10px;
+    border-left: 2px solid var(--border);
+    color: var(--text-soft);
+    line-height: 1.5;
+  }
+  li a:hover {
+    color: var(--text);
+    text-decoration: none;
+  }
+  /* 滚动高亮当前章节 */
+  li a[aria-current='true'] {
+    color: var(--link);
+    border-left-color: var(--brand);
+    background: var(--brand-soft);
+    font-weight: 600;
+  }
+  .depth-3 a {
+    padding-left: 24px;
+    font-size: 0.84rem;
+  }
+  .to-top {
+    margin-top: 12px;
+    width: 100%;
+    padding: 7px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-soft);
+    font-size: 0.82rem;
+    cursor: pointer;
+  }
+  .to-top:hover {
+    color: var(--text);
+    background: var(--bg-soft);
+    border-color: var(--brand);
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const links = document.querySelectorAll('[data-toc-link]');
+    if (!links.length) return;
+
+    const targets = [...links]
+      .map((a) => document.getElementById(a.dataset.tocLink))
+      .filter(Boolean);
+
+    function setCurrent(slug) {
+      links.forEach((a) => {
+        if (a.dataset.tocLink === slug) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      });
+    }
+
+    // 取当前视口内最靠上的标题作为高亮项
+    const observer = new IntersectionObserver(
+      () => {
+        let current = null;
+        for (const el of targets) {
+          if (el.getBoundingClientRect().top <= 90) current = el;
+          else break;
+        }
+        setCurrent(current ? current.id : targets[0].id);
+      },
+      { rootMargin: '-80px 0px -70% 0px', threshold: 0 }
+    );
+    targets.forEach((el) => observer.observe(el));
+
+    document.querySelector('.to-top')?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  })();
+</script>

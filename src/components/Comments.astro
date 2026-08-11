@@ -1,0 +1,78 @@
+---
+import { COMMENTS, SOCIAL } from '../consts';
+
+// 从 GitHub 仓库地址推出 issues 地址；没配 GitHub 就只留邮箱
+const issuesUrl = SOCIAL.github ? `${SOCIAL.github.replace(/\/$/, '')}/issues` : '';
+---
+
+{COMMENTS.provider === 'giscus' ? (
+  <section class="comments" aria-label="评论">
+    <script
+      src="https://giscus.app/client.js"
+      data-repo={COMMENTS.giscus.repo}
+      data-repo-id={COMMENTS.giscus.repoId}
+      data-category={COMMENTS.giscus.category}
+      data-category-id={COMMENTS.giscus.categoryId}
+      data-mapping="pathname"
+      data-reactions-enabled="1"
+      data-emit-metadata="0"
+      data-input-position="top"
+      data-lang="zh-CN"
+      crossorigin="anonymous"
+      async
+    ></script>
+  </section>
+) : (
+  <section class="comments card" aria-label="交流">
+    <p class="title">想聊两句？</p>
+    <p class="hint">
+      这个博客是纯静态站点，暂时没接评论系统。有问题、有想法，或者发现文章里的错误，欢迎直接找我：
+    </p>
+    <div class="actions">
+      {SOCIAL.email && <a class="btn" href={`mailto:${SOCIAL.email}`}>发邮件</a>}
+      {issuesUrl && (
+        <a class="btn-ghost" href={issuesUrl} target="_blank" rel="noopener">
+          在 GitHub 上开 Issue
+        </a>
+      )}
+    </div>
+  </section>
+)}
+
+<style>
+  .comments {
+    margin-top: 48px;
+    padding: 24px;
+  }
+  .title {
+    margin: 0 0 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  .hint {
+    margin: 0 0 18px;
+    color: var(--text-soft);
+    font-size: 0.93rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text);
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .btn-ghost:hover {
+    border-color: var(--brand);
+    background: var(--bg-soft);
+    text-decoration: none;
+  }
+</style>
