@@ -11,8 +11,10 @@ const posts = (await getSortedPosts()).slice(0, 5);
   <Hero slot="hero" />
 
   <p class="section-title">最新文章</p>
-  <ul class="post-list">
-    {posts.map((post, i) => <li><PostCard post={post} index={i} /></li>)}
+  <ul class="post-list is-feature-list">
+    {posts.map((post, i) => (
+      <li><PostCard post={post} index={i} variant="feature" /></li>
+    ))}
   </ul>
 
   <p class="more">
@@ -21,6 +23,10 @@ const posts = (await getSortedPosts()).slice(0, 5);
 </BaseLayout>
 
 <style>
+  /* 首页大卡之间留更大间距，配合更重的卡片体量 */
+  .is-feature-list {
+    gap: 24px;
+  }
   .more {
     margin: 28px 0 0;
   }
