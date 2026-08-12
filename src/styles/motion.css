@@ -1,1 +1,45 @@
-/* 入场动画与 prefers-reduced-motion 降级。内容在 Task 12 填入。 */
+/* ===== 入场动画 ===== */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 卡片错峰入场。--i 由 PostCard 按列表序号写入 inline style。
+   封顶 8 档，避免长列表末尾等太久。 */
+.post-card {
+  animation: fade-up 0.45s ease both;
+  animation-delay: calc(min(var(--i, 0), 8) * 60ms);
+}
+
+/* 侧栏 widget 与 Hero 也走同一套语言 */
+.hero,
+.sidebar > .card {
+  animation: fade-up 0.5s ease both;
+}
+.sidebar > .card:nth-child(2) {
+  animation-delay: 80ms;
+}
+.sidebar > .card:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+/* ===== 无障碍降级 =====
+   用极短时长而非 none：若某元素依赖 animationend 事件，
+   置为 none 会让它永远停在初始态（透明）。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
