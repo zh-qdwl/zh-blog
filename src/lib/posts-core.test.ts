@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   filterPublished,
+  filterFeatured,
   sortByDate,
   sortPinnedFirst,
   groupByCategory,
@@ -19,6 +20,7 @@ function post(over: Partial<PostLike['data']> & { title: string }): PostLike {
       tags: [],
       category: '未分类',
       pinned: false,
+      featured: false,
       draft: false,
       ...over,
     },
@@ -134,5 +136,26 @@ describe('computeStats', () => {
       tagCount: 2,
       categoryCount: 2,
     });
+  });
+});
+
+describe('filterFeatured', () => {
+  it('只保留 featured 为 true 的文章', () => {
+    const posts = [
+      post({ title: 'A', featured: true }),
+      post({ title: 'B' }),
+      post({ title: 'C', featured: true }),
+    ];
+    expect(filterFeatured(posts).map((p) => p.data.title)).toEqual(['A', 'C']);
+  });
+
+  it('没有精选文章时返回空数组', () => {
+    expect(filterFeatured([post({ title: 'A' })])).toEqual([]);
+  });
+
+  it('不修改入参数组', () => {
+    const posts = [post({ title: 'A', featured: true }), post({ title: 'B' })];
+    filterFeatured(posts);
+    expect(posts).toHaveLength(2);
   });
 });

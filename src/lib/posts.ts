@@ -1,6 +1,7 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 import {
   filterPublished,
+  filterFeatured,
   sortByDate,
   sortPinnedFirst,
   groupByCategory,
@@ -22,6 +23,11 @@ export async function getPublishedPosts(): Promise<Post[]> {
 /** 列表页用：置顶优先，其余按日期倒序 */
 export async function getSortedPosts(): Promise<Post[]> {
   return sortPinnedFirst(filterPublished(await getCollection('blog')));
+}
+
+/** 作者精选文章，按日期倒序 */
+export async function getFeaturedPosts(): Promise<Post[]> {
+  return filterFeatured(await getPublishedPosts());
 }
 
 export async function getCategories(): Promise<Counted[]> {

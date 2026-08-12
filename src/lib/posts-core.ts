@@ -13,6 +13,7 @@ export type PostLike = {
     category: string;
     cover?: string;
     pinned: boolean;
+    featured: boolean;
     draft: boolean;
   };
 };
@@ -24,6 +25,11 @@ export type Stats = { postCount: number; tagCount: number; categoryCount: number
 /** 剔除草稿 */
 export function filterPublished<T extends PostLike>(posts: T[]): T[] {
   return posts.filter((p) => !p.data.draft);
+}
+
+/** 只保留作者精选的文章 */
+export function filterFeatured<T extends PostLike>(posts: T[]): T[] {
+  return posts.filter((p) => p.data.featured);
 }
 
 /** 按发布日期倒序（返回新数组，不改入参） */
