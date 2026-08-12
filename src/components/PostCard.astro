@@ -11,9 +11,11 @@ const { post, index = 0 } = Astro.props;
 const { title, description, pubDate, tags, category, cover, pinned } = post.data;
 
 // 无封面时用标题算一个色相做渐变兜底。
-// 刻意压在 28–58 的琥珀区间内，避免随机色相与金黄主色打架。
+// 刻意压在 190–215 的天蓝区间内，与主色同族，避免随机色相跟天空蓝打架。
 const hash = [...title].reduce((acc, ch) => (acc * 31 + ch.codePointAt(0)!) % 997, 7);
-const hue = 28 + (hash % 31);
+const hue = 190 + (hash % 26);
+// 兜底块上叠一个分类首字水印。用展开取字符，避免中文/emoji 被截断成半个码位。
+const watermark = [...category][0] ?? '·';
 ---
 
 <article class="card post-card" style={`--i:${index}; --cover-hue:${hue};`}>
@@ -21,7 +23,7 @@ const hue = 28 + (hash % 31);
     {cover ? (
       <img src={cover} alt="" loading="lazy" />
     ) : (
-      <span class="cover-fallback"></span>
+      <span class="cover-fallback" aria-hidden="true">{watermark}</span>
     )}
   </a>
   <div class="body">
@@ -66,16 +68,23 @@ const hue = 28 + (hash % 31);
     height: 100%;
     object-fit: cover;
   }
-  /* 无封面兜底：琥珀区间渐变 + 网格纹理，与 Hero 同语言 */
+  /* 无封面兜底：天蓝区间渐变 + 网格纹理 + 分类首字水印 */
   .cover-fallback {
     position: absolute;
     inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.5);
+    user-select: none;
     background:
       repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 12px),
       linear-gradient(
         135deg,
         hsl(var(--cover-hue) 85% 62%),
-        hsl(calc(var(--cover-hue) - 14) 75% 48%)
+        hsl(calc(var(--cover-hue) + 14) 70% 42%)
       );
   }
 
