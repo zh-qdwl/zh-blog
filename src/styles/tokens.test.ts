@@ -1,115 +1,120 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { composite, contrastRatio, parseColor } from '../lib/contrast';
 
-// 使用 import.meta.dirname 定位测试文件所在目录
 const __dirname = import.meta.dirname;
-
-// src 根目录，用于递归扫描 --brand 误用
 const SRC_ROOT = join(__dirname, '..');
+const TOKENS = join(__dirname, 'tokens.css');
 
 /** 递归收集 dir 下所有 .css / .astro 文件的绝对路径 */
 function collectStyleFiles(dir: string): string[] {
   const result: string[] = [];
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
-    const stat = statSync(full);
-    if (stat.isDirectory()) {
-      result.push(...collectStyleFiles(full));
-    } else if (entry.endsWith('.css') || entry.endsWith('.astro')) {
-      result.push(full);
-    }
+    if (statSync(full).isDirectory()) result.push(...collectStyleFiles(full));
+    else if (entry.endsWith('.css') || entry.endsWith('.astro')) result.push(full);
   }
   return result;
 }
 
-describe('配色令牌断言', () => {
-  it('亮色模式所有令牌值正确', () => {
-    const tokensPath = join(__dirname, 'tokens.css');
-    const content = readFileSync(tokensPath, 'utf-8');
+/** 从一个 CSS 块里抽出所有 --var: value 声明 */
+function parseBlock(block: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of block.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) {
+    out[m[1]] = m[2].trim();
+  }
+  return out;
+}
 
-    // 提取亮色块 :root { ... }
-    const lightMatch = content.match(/:root\s*\{([^}]+)\}/);
-    expect(lightMatch, '应能找到 :root 块').not.toBeNull();
-    const lightBlock = lightMatch![1];
+/**
+ * 读取 tokens.css，返回亮/暗两套已解析的令牌表。
+ * 暗色块只覆盖部分令牌，未覆盖的沿用亮色——所以暗色表是亮色表的合并结果，
+ * 不这样处理会漏掉 --brand / --brand-ink 这类只在亮色块声明的变量。
+ */
+function readThemes(): { light: Record<string, string>; dark: Record<string, string> } {
+  const css = readFileSync(TOKENS, 'utf-8');
 
-    // 亮色模式的令牌期望值
-    const lightTokens: Array<[string, string]> = [
-      ['--brand', '#fcd635'],
-      ['--brand-strong', '#f0a92e'],
-      ['--brand-ink', '#111827'],
-      ['--link', '#8a6100'],
-      ['--bg', '#ffffff'],
-      ['--bg-soft', '#faf9f5'],
-      ['--card', '#ffffff'],
-      ['--border', '#e8e4db'],
-      ['--text', '#1f2328'],
-      ['--text-soft', '#6b6459'],
-      ['--code-bg', '#f6f8fa'],
-      ['--radius', '12px'],
-      ['--radius-card', '16px'],
-      ['--maxw-page', '1200px'],
-      ['--maxw-prose', '720px'],
-      ['--sidebar-w', '260px'],
-      ['--toc-w', '240px'],
-    ];
+  const lightMatch = css.match(/:root\s*\{([^}]+)\}/);
+  expect(lightMatch, 'tokens.css 应包含 :root 块').not.toBeNull();
+  const light = parseBlock(lightMatch![1]);
 
-    lightTokens.forEach(([token, expectedValue]) => {
-      // 构造正则来匹配 --token: value;（允许空白）
-      const regex = new RegExp(`${token}\\s*:\\s*${expectedValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*;`);
-      expect(
-        lightBlock,
-        `亮色模式: ${token} 应该等于 ${expectedValue}`
-      ).toMatch(regex);
-    });
+  const darkMatch = css.match(/:root\[data-theme='dark'\]\s*\{([^}]+)\}/);
+  expect(darkMatch, "tokens.css 应包含 :root[data-theme='dark'] 块").not.toBeNull();
+  const dark = { ...light, ...parseBlock(darkMatch![1]) };
+
+  return { light, dark };
+}
+
+const AA = 4.5;
+
+describe('配色对比度不变量', () => {
+  const { light, dark } = readThemes();
+  const themes: Array<[string, Record<string, string>]> = [
+    ['亮色', light],
+    ['暗色', dark],
+  ];
+
+  // 这些组合是「正文与链接文字对背景」的全部场景，红线是 4.5:1。
+  const pairs: Array<[string, string]> = [
+    ['--text', '--bg'],
+    ['--text', '--card'],
+    ['--text-soft', '--bg'],
+    ['--text-soft', '--card'],
+    ['--text-soft', '--bg-soft'],
+    ['--link', '--bg'],
+    ['--link', '--card'],
+    ['--link', '--bg-soft'],
+    ['--brand-ink', '--brand'],
+  ];
+
+  for (const [themeName, tokens] of themes) {
+    for (const [fg, bg] of pairs) {
+      it(`${themeName}：${fg} 对 ${bg} 不低于 ${AA}:1`, () => {
+        expect(tokens[fg], `${themeName}缺少 ${fg}`).toBeTruthy();
+        expect(tokens[bg], `${themeName}缺少 ${bg}`).toBeTruthy();
+        const ratio = contrastRatio(tokens[fg], tokens[bg]);
+        expect(ratio, `${themeName} ${fg} on ${bg} = ${ratio}:1`).toBeGreaterThanOrEqual(AA);
+      });
+    }
+  }
+
+  it('磨砂卡片上的正文仍满足对比度（按合成后的等效底色计算）', () => {
+    for (const [themeName, tokens] of themes) {
+      const glass = tokens['--glass-bg'];
+      expect(glass, `${themeName}缺少 --glass-bg`).toBeTruthy();
+      // 磨砂层叠在页面底色之上，取合成后的不透明等效色
+      const effective = composite(parseColor(glass), parseColor(tokens['--bg']));
+      for (const fg of ['--text', '--text-soft', '--link']) {
+        const ratio = contrastRatio(tokens[fg], effective);
+        expect(ratio, `${themeName} ${fg} 在磨砂卡上 = ${ratio}:1`).toBeGreaterThanOrEqual(AA);
+      }
+    }
+  });
+});
+
+describe('配色角色契约', () => {
+  const { light, dark } = readThemes();
+
+  it('亮暗两套都必须声明 --brand / --brand-ink / --link 三个角色', () => {
+    for (const [name, tokens] of [['亮色', light], ['暗色', dark]] as const) {
+      for (const role of ['--brand', '--brand-ink', '--link']) {
+        expect(tokens[role], `${name}缺少角色变量 ${role}`).toBeTruthy();
+      }
+    }
   });
 
-  it('暗色模式所有令牌值正确', () => {
-    const tokensPath = join(__dirname, 'tokens.css');
-    const content = readFileSync(tokensPath, 'utf-8');
-
-    // 提取暗色块 :root[data-theme='dark'] { ... }
-    const darkMatch = content.match(/:root\[data-theme='dark'\]\s*\{([^}]+)\}/);
-    expect(darkMatch, '应能找到 :root[data-theme=\'dark\'] 块').not.toBeNull();
-    const darkBlock = darkMatch![1];
-
-    // 暗色模式的令牌期望值
-    const darkTokens: Array<[string, string]> = [
-      ['--link', '#fcd635'],
-      ['--bg', '#14120e'],
-      ['--bg-soft', '#1c1913'],
-      ['--card', '#1a1712'],
-      ['--border', '#2b261d'],
-      ['--text', '#eae4d9'],
-      ['--text-soft', '#a8a096'],
-      ['--code-bg', '#1c1913'],
-    ];
-
-    darkTokens.forEach(([token, expectedValue]) => {
-      // 构造正则来匹配 --token: value;（允许空白）
-      const regex = new RegExp(`${token}\\s*:\\s*${expectedValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*;`);
-      expect(
-        darkBlock,
-        `暗色模式: ${token} 应该等于 ${expectedValue}`
-      ).toMatch(regex);
-    });
-  });
-
-  it('--brand 不能用作 color: 属性值（扫描 src 下所有 .css/.astro 文件，含组件 scoped style）', () => {
-    // 匹配 color: var(--brand) 的严格模式
-    // 允许 var(--brand-ink), var(--brand-strong), var(--brand-soft)
-    // 但禁止 color: var(--brand)，不包括 border-color 等复合属性
-    const invalidPattern = /(?<![a-z-])color\s*:\s*var\(--brand\)/;
-
+  it('--brand 亮度过高，不得作为文字色使用（扫描 src 下所有 .css/.astro）', () => {
+    // 允许 var(--brand-ink) / var(--brand-soft) / var(--brand-strong)；
+    // 负向前瞻排除 border-color / background-color 等复合属性
+    const invalid = /(?<![a-z-])color\s*:\s*var\(--brand\)/;
     const files = collectStyleFiles(SRC_ROOT);
     expect(files.length, '应能在 src 下找到样式文件').toBeGreaterThan(0);
-
     for (const file of files) {
-      const content = readFileSync(file, 'utf-8');
       expect(
-        content,
-        `${relative(SRC_ROOT, file)} 中不应该有 color: var(--brand) 声明（会导致低对比度）`
-      ).not.toMatch(invalidPattern);
+        readFileSync(file, 'utf-8'),
+        `${relative(SRC_ROOT, file)} 中不应有 color: var(--brand)（对比度过低）`
+      ).not.toMatch(invalid);
     }
   });
 });
