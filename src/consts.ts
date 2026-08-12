@@ -6,6 +6,12 @@ export const AUTHOR = 'ZH';
 // 头像。默认是自动生成的字母占位图，换成自己的照片时把文件放进 public/ 再改这里。
 export const AVATAR = '/avatar.svg';
 
+// 一句身份描述，显示在首页作者卡与侧栏头像卡上
+export const AUTHOR_ROLE = '前端开发 · 记录所学与折腾过程';
+
+// 建站日期（ISO），用于首页「本站已运行 X 天」。改成你真实的起点。
+export const SITE_START = '2026-08-09';
+
 // 顶部导航
 export const NAV_LINKS = [
   { href: '/', label: '首页' },
@@ -24,6 +30,10 @@ export const SOCIAL = {
   repo: 'https://github.com/zh-qdwl/zh-blog',
   email: '1498690097@qq.com',
   rss: '/rss.xml',
+  // 下面三个留空则不显示
+  gitee: '',
+  juejin: '',
+  csdn: '',
 };
 
 // 评论系统。

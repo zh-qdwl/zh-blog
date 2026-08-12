@@ -16,6 +16,8 @@ const blog = defineCollection({
     cover: z.string().optional(),
     // 置顶：列表页排在最前
     pinned: z.boolean().default(false),
+    // 作者精选：在侧栏「作者精选」widget 中列出
+    featured: z.boolean().default(false),
     draft: z.boolean().default(false),
   }),
 });
