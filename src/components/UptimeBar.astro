@@ -1,0 +1,60 @@
+---
+import { SITE_START } from '../consts';
+import { uptimeSince } from '../lib/home';
+
+// 服务端先算一个初始值，避免首屏空白；客户端每分钟刷新
+const initial = uptimeSince(SITE_START, new Date());
+---
+
+<p class="uptime glass" data-start={SITE_START}>
+  <span class="dot" aria-hidden="true"></span>
+  本站已运行
+  <strong data-uptime-days>{initial.days}</strong> 天
+  <strong data-uptime-hours>{initial.hours}</strong> 小时
+</p>
+
+<style>
+  .uptime {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0 0 24px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    color: var(--text-soft);
+    font-size: 0.88rem;
+  }
+  .uptime strong {
+    color: var(--link);
+    font-variant-numeric: tabular-nums;
+  }
+  /* 呼吸小圆点，提示这是实时数字 */
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const el = document.querySelector('[data-start]');
+    if (!el) return;
+    const start = new Date(el.dataset.start).getTime();
+    const dEl = el.querySelector('[data-uptime-days]');
+    const hEl = el.querySelector('[data-uptime-hours]');
+    function tick() {
+      const ms = Date.now() - start;
+      if (!isFinite(ms) || ms <= 0) return;
+      const totalHours = Math.floor(ms / 3600000);
+      dEl.textContent = String(Math.floor(totalHours / 24));
+      hEl.textContent = String(totalHours % 24);
+    }
+    tick();
+    setInterval(tick, 60000);
+  })();
+</script>
