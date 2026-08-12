@@ -11,9 +11,9 @@ const posts = (await getSortedPosts()).slice(0, 5);
   <Hero slot="hero" />
 
   <p class="section-title">最新文章</p>
-  <div class="post-list">
-    {posts.map((post, i) => <PostCard post={post} index={i} />)}
-  </div>
+  <ul class="post-list">
+    {posts.map((post, i) => <li><PostCard post={post} index={i} /></li>)}
+  </ul>
 
   <p class="more">
     <a class="btn" href="/blog">查看全部文章 →</a>

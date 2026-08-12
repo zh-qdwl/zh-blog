@@ -6,7 +6,8 @@
 }
 
 main {
-  min-height: calc(100vh - 60px - 140px);
+  /* 用视口比例代替硬编码的头部/页脚高度，避免页脚改动后数值跟着失真 */
+  min-height: 60vh;
   padding: 32px 0 64px;
 }
 

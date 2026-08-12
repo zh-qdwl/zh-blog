@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import PostCard from '../../components/PostCard.astro';
 import { getPublishedPosts, getTags, type Post } from '../../lib/posts';
+import { sortPinnedFirst } from '../../lib/posts-core';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -9,7 +10,8 @@ export async function getStaticPaths() {
   return tags.map((t) => ({
     // 传原始中文名，Astro 会自动做 URL 编码
     params: { tag: t.name },
-    props: { tag: t.name, posts: posts.filter((p) => p.data.tags.includes(t.name)) },
+    // 置顶优先，与首页/全部文章页一致，避免 PostCard 的置顶徽标与实际排序不符
+    props: { tag: t.name, posts: sortPinnedFirst(posts.filter((p) => p.data.tags.includes(t.name))) },
   }));
 }
 
@@ -19,9 +21,9 @@ const { tag, posts } = Astro.props as { tag: string; posts: Post[] };
 <BaseLayout title={`标签：${tag}`} description={`标签「${tag}」下的全部文章`} layout="sidebar">
   <p class="crumb"><a href="/tags">标签</a> /</p>
   <h1 class="page-title">{tag} <span class="count">{posts.length} 篇</span></h1>
-  <div class="post-list">
-    {posts.map((post, i) => <PostCard post={post} index={i} />)}
-  </div>
+  <ul class="post-list">
+    {posts.map((post, i) => <li><PostCard post={post} index={i} /></li>)}
+  </ul>
 </BaseLayout>
 
 <style>

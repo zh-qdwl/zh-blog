@@ -66,6 +66,19 @@ describe('sortPinnedFirst', () => {
   });
 });
 
+describe('标签/分类详情页：过滤后仍需置顶优先', () => {
+  it('按标签过滤后，置顶但更旧的文章仍排在未置顶但更新的文章前面', () => {
+    const posts = [
+      post({ title: '未置顶新', pubDate: new Date('2026-08-01'), tags: ['随笔'] }),
+      post({ title: '置顶旧', pubDate: new Date('2026-01-01'), pinned: true, tags: ['随笔'] }),
+      post({ title: '不在此标签', pubDate: new Date('2026-09-01'), tags: ['教程'] }),
+    ];
+    // 模拟 tags/[tag].astro 的 getStaticPaths：先按标签过滤，再置顶排序
+    const filtered = sortPinnedFirst(posts.filter((p) => p.data.tags.includes('随笔')));
+    expect(filtered.map((p) => p.data.title)).toEqual(['置顶旧', '未置顶新']);
+  });
+});
+
 describe('groupByCategory', () => {
   it('按文章数倒序统计分类', () => {
     const posts = [

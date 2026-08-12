@@ -252,6 +252,10 @@
         e.preventDefault();
         if (hits.length) cursor = (cursor - 1 + hits.length) % hits.length;
         render();
+      } else if (e.key === 'Enter' && document.activeElement !== input) {
+        // 焦点已经通过 Tab 落在某个结果链接上：交给原生的 <a> 处理 Enter，
+        // 否则会无视 Tab 移动过的焦点，永远跳到 hits[cursor]（即第一项）指向的文章
+        return;
       } else if (e.key === 'Enter' && hits[cursor]) {
         e.preventDefault();
         window.location.href = hits[cursor].url;

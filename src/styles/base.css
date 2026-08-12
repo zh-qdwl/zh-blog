@@ -163,11 +163,14 @@ a.tag:hover {
   color: var(--text-soft);
 }
 
-/* 文章卡片纵向列表容器 */
+/* 文章卡片纵向列表容器（语义上是 <ul>，重置默认列表样式，<li> 仍作为 flex 子项参与布局） */
 .post-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 /* ===== 文章正文 ===== */
@@ -242,7 +245,7 @@ a.tag:hover {
 .prose th {
   background: var(--bg-soft);
 }
-/* 正文里的标题锚点：给 TOC 滚动定位留出头部高度 */
-.prose :is(h2, h3, h4) {
-  scroll-margin-top: 76px;
-}
+/* 注意：不要在这里补 scroll-margin-top！
+   html 的 scroll-padding-top 已经统一处理了锚点跳转的头部偏移，
+   若标题再叠加 scroll-margin-top，两者会相加（76+76=152px），
+   导致跳转位置远离固定头部，还会让 Toc.astro 的滚动高亮判断错位。 */

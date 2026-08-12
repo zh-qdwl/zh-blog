@@ -1,9 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
 // 使用 import.meta.dirname 定位测试文件所在目录
 const __dirname = import.meta.dirname;
+
+// src 根目录，用于递归扫描 --brand 误用
+const SRC_ROOT = join(__dirname, '..');
+
+/** 递归收集 dir 下所有 .css / .astro 文件的绝对路径 */
+function collectStyleFiles(dir: string): string[] {
+  const result: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      result.push(...collectStyleFiles(full));
+    } else if (entry.endsWith('.css') || entry.endsWith('.astro')) {
+      result.push(full);
+    }
+  }
+  return result;
+}
 
 describe('配色令牌断言', () => {
   it('亮色模式所有令牌值正确', () => {
@@ -12,7 +30,7 @@ describe('配色令牌断言', () => {
 
     // 提取亮色块 :root { ... }
     const lightMatch = content.match(/:root\s*\{([^}]+)\}/);
-    expect(lightMatch, '应能找到 :root 块').toBeDefined();
+    expect(lightMatch, '应能找到 :root 块').not.toBeNull();
     const lightBlock = lightMatch![1];
 
     // 亮色模式的令牌期望值
@@ -52,7 +70,7 @@ describe('配色令牌断言', () => {
 
     // 提取暗色块 :root[data-theme='dark'] { ... }
     const darkMatch = content.match(/:root\[data-theme='dark'\]\s*\{([^}]+)\}/);
-    expect(darkMatch, '应能找到 :root[data-theme=\'dark\'] 块').toBeDefined();
+    expect(darkMatch, '应能找到 :root[data-theme=\'dark\'] 块').not.toBeNull();
     const darkBlock = darkMatch![1];
 
     // 暗色模式的令牌期望值
@@ -77,18 +95,21 @@ describe('配色令牌断言', () => {
     });
   });
 
-  it('--brand 不能用作 color: 属性值', () => {
-    const basePath = join(__dirname, 'base.css');
-    const content = readFileSync(basePath, 'utf-8');
-
+  it('--brand 不能用作 color: 属性值（扫描 src 下所有 .css/.astro 文件，含组件 scoped style）', () => {
     // 匹配 color: var(--brand) 的严格模式
     // 允许 var(--brand-ink), var(--brand-strong), var(--brand-soft)
     // 但禁止 color: var(--brand)，不包括 border-color 等复合属性
     const invalidPattern = /(?<![a-z-])color\s*:\s*var\(--brand\)/;
 
-    expect(
-      content,
-      'base.css 中不应该有 color: var(--brand) 声明（会导致低对比度）'
-    ).not.toMatch(invalidPattern);
+    const files = collectStyleFiles(SRC_ROOT);
+    expect(files.length, '应能在 src 下找到样式文件').toBeGreaterThan(0);
+
+    for (const file of files) {
+      const content = readFileSync(file, 'utf-8');
+      expect(
+        content,
+        `${relative(SRC_ROOT, file)} 中不应该有 color: var(--brand) 声明（会导致低对比度）`
+      ).not.toMatch(invalidPattern);
+    }
   });
 });

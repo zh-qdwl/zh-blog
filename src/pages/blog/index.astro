@@ -8,9 +8,9 @@ const posts = await getSortedPosts();
 
 <BaseLayout title="全部文章" description="所有博客文章列表" layout="sidebar">
   <h1 class="page-title">全部文章 <span class="count">{posts.length}</span></h1>
-  <div class="post-list">
-    {posts.map((post, i) => <PostCard post={post} index={i} />)}
-  </div>
+  <ul class="post-list">
+    {posts.map((post, i) => <li><PostCard post={post} index={i} /></li>)}
+  </ul>
 </BaseLayout>
 
 <style>
