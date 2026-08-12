@@ -17,7 +17,11 @@ export const NAV_LINKS = [
 
 // 社交/联系方式链接（留空的会自动隐藏）
 export const SOCIAL = {
+  // github 是个人主页，用于页脚和头像卡的社交图标
   github: 'https://github.com/zh-qdwl',
+  // repo 是本博客的仓库地址，用于生成「开 Issue」链接。
+  // 注意别和上面的个人主页搞混：主页拼 /issues 是打不开的。
+  repo: 'https://github.com/zh-qdwl/zh-blog',
   email: '1498690097@qq.com',
   rss: '/rss.xml',
 };

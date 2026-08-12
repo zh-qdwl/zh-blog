@@ -1,8 +1,9 @@
 ---
 import { COMMENTS, SOCIAL } from '../consts';
 
-// 从 GitHub 仓库地址推出 issues 地址；没配 GitHub 就只留邮箱
-const issuesUrl = SOCIAL.github ? `${SOCIAL.github.replace(/\/$/, '')}/issues` : '';
+// 从仓库地址推出 issues 地址。必须用 SOCIAL.repo 而不是 SOCIAL.github ——
+// 后者是个人主页，拼出来的 /zh-qdwl/issues 是个死链。没配 repo 就只留邮箱。
+const issuesUrl = SOCIAL.repo ? `${SOCIAL.repo.replace(/\/$/, '')}/issues` : '';
 ---
 
 {COMMENTS.provider === 'giscus' ? (
