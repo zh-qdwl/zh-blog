@@ -1,12 +1,19 @@
-/* ===== 入场动画 ===== */
+/* ===== 入场动画 =====
+   这里用 translate 独立属性而非 transform：
+   transform 是最高优先级的合成属性，动画结束后 both 会让其
+   `to` 值（transform: none）一直生效，覆盖 .post-card:hover
+   里普通优先级的 transform: translateY(-2px)，导致 hover 上浮失效。
+   translate 与 transform 是两个独立的 CSS 属性，浏览器先应用
+   translate 再叠加 transform，二者不会互相覆盖，因此入场偏移与
+   hover 上浮可以同时生效。切勿为“简化”而把它改回 transform。 */
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    translate: 0 12px;
   }
   to {
     opacity: 1;
-    transform: none;
+    translate: 0 0;
   }
 }
 
