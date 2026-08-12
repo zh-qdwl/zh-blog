@@ -658,7 +658,9 @@ git commit -m "feat: schema 加 featured 字段，配置加运行起点与身份
 - Produces:
   - `posts-core.ts` 新增 `filterFeatured<T extends PostLike>(posts: T[]): T[]`
   - `posts.ts` 新增 `getFeaturedPosts(): Promise<Post[]>`（精选 + 日期倒序）
-  - `home.ts` 导出 `pickRandom<T>(items: T[], n: number, rand?: () => number): T[]` 与 `uptimeSince(startISO: string, now: Date): { days: number; hours: number }`
+  - `home.ts` 导出 `uptimeSince(startISO: string, now: Date): { days: number; hours: number }`
+
+**关于「随机抽取」为何不在这里：** spec 4.4 要求随机推荐**每次访问**都不同，这只能由客户端脚本完成（服务端渲染是构建期固定的）。而 `is:inline` 脚本无法 import 模块，所以洗牌逻辑必须内联在 `RandomPosts.astro` 里（Task 8）。若在此处再写一个 `pickRandom` 纯函数，它将没有任何生产调用方——只有测试用它，属于死代码。故本任务只做 `uptimeSince`。
 
 **注意：** `PostLike` 的 `data` 目前没有 `featured`，需要把它加进类型定义，否则 `filterFeatured` 无法通过类型检查。
 
@@ -710,43 +712,7 @@ Create `src/lib/home.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { pickRandom, uptimeSince } from './home';
-
-describe('pickRandom', () => {
-  it('n 大于数组长度时返回全部元素（不重复、不补空）', () => {
-    const out = pickRandom([1, 2, 3], 10);
-    expect(out).toHaveLength(3);
-    expect([...out].sort()).toEqual([1, 2, 3]);
-  });
-
-  it('n 为 0 时返回空数组', () => {
-    expect(pickRandom([1, 2, 3], 0)).toEqual([]);
-  });
-
-  it('返回的元素互不重复', () => {
-    const out = pickRandom([1, 2, 3, 4, 5], 3);
-    expect(new Set(out).size).toBe(3);
-  });
-
-  it('注入固定的随机源时结果可预测', () => {
-    // rand 恒返回 0：Fisher-Yates 每一步都选中当前区间的第一个元素
-    const out = pickRandom(['a', 'b', 'c', 'd'], 2, () => 0);
-    expect(out).toHaveLength(2);
-    expect(new Set(out).size).toBe(2);
-    // 同样的随机源必须给出同样的结果
-    expect(pickRandom(['a', 'b', 'c', 'd'], 2, () => 0)).toEqual(out);
-  });
-
-  it('不修改入参数组', () => {
-    const src = [1, 2, 3];
-    pickRandom(src, 2);
-    expect(src).toEqual([1, 2, 3]);
-  });
-
-  it('空数组返回空数组', () => {
-    expect(pickRandom([], 3)).toEqual([]);
-  });
-});
+import { uptimeSince } from './home';
 
 describe('uptimeSince', () => {
   it('同一时刻为 0 天 0 小时', () => {
@@ -809,21 +775,8 @@ Create `src/lib/home.ts`:
 
 ```ts
 // 首页专用的纯逻辑。不 import astro:content，可直接单测。
-
-/**
- * 从 items 中随机取 n 个不重复元素。
- * rand 可注入以便测试；默认用 Math.random。
- * 用 Fisher-Yates 在副本上洗牌，不修改入参。
- */
-export function pickRandom<T>(items: T[], n: number, rand: () => number = Math.random): T[] {
-  const pool = [...items];
-  const take = Math.max(0, Math.min(n, pool.length));
-  for (let i = 0; i < take; i++) {
-    const j = i + Math.floor(rand() * (pool.length - i));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool.slice(0, take);
-}
+// 随机推荐的洗牌不在这里——它必须每次访问都变，只能由客户端脚本做，
+// 而 is:inline 脚本无法 import 模块，故那段逻辑内联在 RandomPosts.astro 里。
 
 /** 从建站日期算到 now 的运行时长。起点晚于 now 时归零。 */
 export function uptimeSince(startISO: string, now: Date): { days: number; hours: number } {
@@ -850,7 +803,7 @@ export async function getFeaturedPosts(): Promise<Post[]> {
 - [ ] **Step 7: 运行测试确认通过**
 
 Run: `npm test`
-Expected: PASS — 新增 13 个测试（posts-core 3 个 + home 10 个）全绿
+Expected: PASS — 新增 7 个测试（posts-core 的 `filterFeatured` 3 个 + home 的 `uptimeSince` 4 个）全绿
 
 - [ ] **Step 8: 构建验证**
 
@@ -1807,12 +1760,12 @@ git commit -m "fix: 天空配色改造验收修补"
 - `Rgba`、`parseColor`、`composite`、`relativeLuminance`、`contrastRatio` 在 Task 1 定义，Task 1 Step 5 的 `tokens.test.ts` 与 Task 10 Step 4 使用，名称一致
 - `filterFeatured` 在 Task 4 Step 4 定义（`posts-core.ts`），Task 4 Step 1 测试、Task 4 Step 6 被 `posts.ts` 引用
 - `getFeaturedPosts` 在 Task 4 Step 6 定义，Task 8 Step 2 的 `FeaturedPosts.astro` 调用
-- `pickRandom`、`uptimeSince` 在 Task 4 Step 5 定义；`uptimeSince` 由 Task 7 的 `UptimeBar.astro` 调用。`pickRandom` **仅被单测覆盖**，随机推荐 widget 走的是客户端洗牌（服务端无法做到每次访问不同）——这是有意的，不是漏用
+- `uptimeSince` 在 Task 4 Step 5 定义，由 Task 7 的 `UptimeBar.astro` 调用
 - `variant?: 'compact' | 'feature'` 在 Task 6 Step 1 定义，Task 6 Step 3 首页传入；`is-compact` / `is-feature` class 由 Task 6 Step 1 的 `class:list` 生成，Task 6 Step 5 与 Task 9 Step 2 依赖这两个类名
 - `--glass-bg`/`--glass-border`/`--blur`/`--shadow-glass`/`--ease`/`--dur` 在 Task 2 定义，Task 7、8、9 消费
 - `widget-random` / `widget-featured` 在 Task 8 定义；已在该任务的「布局契约」中说明它们不被 960px 断点的 `order` 选择器覆盖，故移动端顺序为默认的 0
 
 **4. 已知取舍（供评审知情）**
 
-- `pickRandom` 是纯函数且有单测，但页面上的随机走客户端脚本。若要让 `pickRandom` 真正上生产路径，需接受「每次部署才变一次」——与 spec 4.4 的目标相悖，故保持现状。
+- 随机推荐的洗牌逻辑内联在 `RandomPosts.astro` 的 `is:inline` 脚本里，没有对应的纯函数单测。这是 spec 4.4「每次访问都不同」的必然结果：服务端渲染是构建期固定的，而 `is:inline` 脚本无法 import 模块。曾考虑再写一个 `pickRandom` 纯函数供测试，但它不会有任何生产调用方——那是带测试的死代码，故不写。
 - Task 1 Step 6 让 `tokens.css` 在 Task 1 与 Task 2 各改一次。代价是一次额外改动，收益是护栏与被守护的值分属两个可独立评审的提交。
