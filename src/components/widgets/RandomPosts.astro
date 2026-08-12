@@ -1,0 +1,72 @@
+---
+import { getPublishedPosts } from '../../lib/posts';
+
+// 服务端渲染全部候选，客户端加载时随机抽至多 3 条。
+// 这样每次访问都不同，而不是每次部署才变一次。
+const posts = await getPublishedPosts();
+---
+
+{posts.length > 0 && (
+  <div class="card widget widget-random">
+    <p class="widget-title">随机推荐</p>
+    <ul data-random-pool>
+      {posts.map((post) => (
+        <li hidden>
+          <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+<style>
+  .widget-random {
+    padding: 20px;
+  }
+  .widget-title {
+    margin: 0 0 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-soft);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  li a {
+    display: block;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  li a:hover {
+    background: var(--brand-soft);
+    color: var(--link);
+    text-decoration: none;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const ul = document.querySelector('[data-random-pool]');
+    if (!ul) return;
+    const items = [...ul.children];
+    // Fisher-Yates 洗牌后显示前 3 条，其余保持 hidden
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    items.slice(0, 3).forEach((li) => {
+      li.hidden = false;
+      ul.appendChild(li);
+    });
+  })();
+</script>
