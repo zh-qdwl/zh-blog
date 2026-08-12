@@ -1,8 +1,9 @@
 ---
 import { getPublishedPosts } from '../../lib/posts';
 
-// 服务端渲染全部候选，客户端加载时随机抽至多 3 条。
-// 这样每次访问都不同，而不是每次部署才变一次。
+// 服务端先固定显示前 3 条（无 JS 时的兜底效果），其余 hidden。
+// 客户端加载后再从全部候选里随机洗牌，重新挑 3 条展示——
+// 这样无 JS 也有内容，有 JS 则每次访问都不同。
 const posts = await getPublishedPosts();
 ---
 
@@ -10,8 +11,8 @@ const posts = await getPublishedPosts();
   <div class="card widget widget-random">
     <p class="widget-title">随机推荐</p>
     <ul data-random-pool>
-      {posts.map((post) => (
-        <li hidden>
+      {posts.map((post, index) => (
+        <li hidden={index >= 3}>
           <a href={`/blog/${post.id}/`}>{post.data.title}</a>
         </li>
       ))}
@@ -22,13 +23,6 @@ const posts = await getPublishedPosts();
 <style>
   .widget-random {
     padding: 20px;
-  }
-  .widget-title {
-    margin: 0 0 12px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: var(--text-soft);
   }
   ul {
     list-style: none;
@@ -59,14 +53,21 @@ const posts = await getPublishedPosts();
     const ul = document.querySelector('[data-random-pool]');
     if (!ul) return;
     const items = [...ul.children];
-    // Fisher-Yates 洗牌后显示前 3 条，其余保持 hidden
+    // Fisher-Yates 洗牌（对全部候选进行，而非仅对已显示的 3 条）
     for (let i = items.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [items[i], items[j]] = [items[j], items[i]];
     }
-    items.slice(0, 3).forEach((li) => {
-      li.hidden = false;
-      ul.appendChild(li);
+    const picked = items.slice(0, 3);
+    const pickedSet = new Set(picked);
+    // 先重置所有项的显示状态，保证幂等（重复执行不会累积或多显示）
+    items.forEach((li) => {
+      li.hidden = !pickedSet.has(li);
     });
+    // 把选中的 3 条移到列表最前面（保持洗牌后的相对顺序），与标题暗示的一致
+    picked
+      .slice()
+      .reverse()
+      .forEach((li) => ul.insertBefore(li, ul.firstChild));
   })();
 </script>

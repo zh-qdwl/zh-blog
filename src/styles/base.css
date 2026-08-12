@@ -173,6 +173,15 @@ a.tag:hover {
   padding: 0;
 }
 
+/* 侧栏各 widget（分类/标签/随机推荐/作者精选）统一的小标题样式 */
+.widget-title {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+}
+
 /* ===== 文章正文 ===== */
 .prose {
   font-size: 1.02rem;
