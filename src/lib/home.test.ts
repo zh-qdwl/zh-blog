@@ -29,4 +29,14 @@ describe('uptimeSince', () => {
       hours: 0,
     });
   });
+
+  // 这条守着 Number.isFinite 判空：无法解析的日期会让 getTime() 返回 NaN，
+  // 而 NaN <= 0 为 false——若日后有人把守卫简化成只判 <= 0，NaN 就会漏过去，
+  // 页面上会显示「已运行 NaN 天」。
+  it('起点无法解析时归零，不返回 NaN', () => {
+    expect(uptimeSince('not-a-date', new Date('2026-08-12T00:00:00Z'))).toEqual({
+      days: 0,
+      hours: 0,
+    });
+  });
 });
