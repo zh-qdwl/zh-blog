@@ -49,8 +49,8 @@ const stats = await getStats();
     align-items: center;
     color: var(--brand-ink);
     background:
-      radial-gradient(120% 130% at 12% 18%, rgba(255, 255, 255, 0.5), transparent 58%),
-      linear-gradient(135deg, var(--brand), var(--brand-strong));
+      radial-gradient(120% 130% at 12% 18%, rgba(255, 255, 255, 0.42), transparent 60%),
+      linear-gradient(160deg, var(--brand) 0%, var(--brand-strong) 100%);
   }
   /* 细网格纹理 */
   .hero::before {
@@ -119,12 +119,12 @@ const stats = await getStats();
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: rgba(17, 24, 39, 0.08);
+    background: rgba(11, 27, 43, 0.08);
     color: var(--brand-ink);
-    transition: background 0.15s ease, transform 0.15s ease;
+    transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
   }
   .hero-social a:hover {
-    background: rgba(17, 24, 39, 0.16);
+    background: rgba(11, 27, 43, 0.16);
     transform: translateY(-2px);
   }
 

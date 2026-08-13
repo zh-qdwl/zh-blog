@@ -58,6 +58,22 @@ hr {
   box-shadow: var(--shadow);
 }
 
+/* 磨砂玻璃。用在首页大卡与运行时间条上。
+   backdrop-filter 不被支持时回退为实色 --card，否则半透明底会让文字读不清。 */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  box-shadow: var(--shadow-glass);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--card);
+    border-color: var(--border);
+  }
+}
+
 .tag {
   display: inline-block;
   padding: 2px 10px;
