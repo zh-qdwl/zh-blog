@@ -184,8 +184,14 @@ main {
   .sidebar > .widget-profile {
     order: -1;
   }
+  /* 除头像卡之外的 widget 一律压到内容下方。
+     必须逐个列出：order 相同时按 DOM 顺序排，而 Sidebar 在 BaseLayout 里
+     渲染于 .page-main 之前，所以任何漏掉的 widget 会以 order:0 排到内容「上方」，
+     把文章列表挤下去。新增 widget 时记得加进这个选择器。 */
   .sidebar > .widget-category,
-  .sidebar > .widget-tags {
+  .sidebar > .widget-tags,
+  .sidebar > .widget-featured,
+  .sidebar > .widget-random {
     order: 1;
   }
 }
