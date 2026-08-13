@@ -1,37 +1,36 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import FormattedDate from '../components/FormattedDate.astro';
-import { SITE_DESCRIPTION } from '../consts';
+import Hero from '../components/Hero.astro';
+import PostCard from '../components/PostCard.astro';
+import UptimeBar from '../components/UptimeBar.astro';
+import { getSortedPosts } from '../lib/posts';
 
-const posts = (await getCollection('blog', ({ data }) => !data.draft))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-  .slice(0, 5);
+const posts = (await getSortedPosts()).slice(0, 5);
 ---
 
-<BaseLayout>
-  <section class="hero">
-    <h1>你好，欢迎来到我的博客 👋</h1>
-    <p>{SITE_DESCRIPTION}</p>
-  </section>
+<BaseLayout layout="sidebar">
+  <Hero slot="hero" />
+
+  <UptimeBar />
 
   <p class="section-title">最新文章</p>
-  <ul class="post-list">
-    {posts.map((post) => (
-      <li>
-        <a class="post-item" href={`/blog/${post.id}/`}>
-          <h3>{post.data.title}</h3>
-          <p>{post.data.description}</p>
-          <div class="post-meta">
-            <FormattedDate date={post.data.pubDate} />
-            {post.data.tags.map((tag) => <span class="tag">{tag}</span>)}
-          </div>
-        </a>
-      </li>
+  <ul class="post-list is-feature-list">
+    {posts.map((post, i) => (
+      <li><PostCard post={post} index={i} variant="feature" /></li>
     ))}
   </ul>
 
-  <p style="margin-top:24px">
-    <a href="/blog">查看全部文章 →</a>
+  <p class="more">
+    <a class="btn" href="/blog">查看全部文章 →</a>
   </p>
 </BaseLayout>
+
+<style>
+  /* 首页大卡之间留更大间距，配合更重的卡片体量 */
+  .is-feature-list {
+    gap: 24px;
+  }
+  .more {
+    margin: 28px 0 0;
+  }
+</style>

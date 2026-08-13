@@ -1,0 +1,62 @@
+---
+import { AUTHOR, AUTHOR_ROLE, SITE_DESCRIPTION, AVATAR, SOCIAL } from '../../consts';
+
+// 只渲染填了值的社交链接，留空自动隐藏
+const links = [
+  { key: 'github', label: 'GitHub', href: SOCIAL.github },
+  { key: 'gitee', label: 'Gitee', href: SOCIAL.gitee },
+  { key: 'juejin', label: '掘金', href: SOCIAL.juejin },
+  { key: 'csdn', label: 'CSDN', href: SOCIAL.csdn },
+  { key: 'email', label: 'Email', href: SOCIAL.email ? `mailto:${SOCIAL.email}` : '' },
+  { key: 'rss', label: 'RSS', href: SOCIAL.rss },
+].filter((l) => l.href);
+---
+
+<div class="card widget widget-profile">
+  <img class="avatar" src={AVATAR} alt="头像" width="72" height="72" loading="lazy" />
+  <p class="name">{AUTHOR}</p>
+  <p class="role">{AUTHOR_ROLE}</p>
+  <p class="bio">{SITE_DESCRIPTION}</p>
+  <div class="links">
+    {links.map((l) => (
+      <a href={l.href} target={l.key === 'email' ? undefined : '_blank'} rel="noopener">
+        {l.label}
+      </a>
+    ))}
+  </div>
+</div>
+
+<style>
+  .widget-profile {
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--brand);
+  }
+  .name {
+    margin: 12px 0 2px;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .role {
+    margin: 0 0 8px;
+    color: var(--link);
+    font-size: 0.82rem;
+  }
+  .bio {
+    margin: 0 0 16px;
+    color: var(--text-soft);
+    font-size: 0.88rem;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 14px;
+    font-size: 0.85rem;
+  }
+</style>

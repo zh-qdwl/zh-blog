@@ -1,0 +1,52 @@
+/* ===== 入场动画 =====
+   这里用 translate 独立属性而非 transform：
+   transform 是最高优先级的合成属性，动画结束后 both 会让其
+   `to` 值（transform: none）一直生效，覆盖 .post-card:hover
+   里普通优先级的 transform: translateY(-2px)，导致 hover 上浮失效。
+   translate 与 transform 是两个独立的 CSS 属性，浏览器先应用
+   translate 再叠加 transform，二者不会互相覆盖，因此入场偏移与
+   hover 上浮可以同时生效。切勿为“简化”而把它改回 transform。 */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* 卡片错峰入场。--i 由 PostCard 按列表序号写入 inline style。
+   封顶 8 档，避免长列表末尾等太久。 */
+.post-card {
+  animation: fade-up 0.45s ease both;
+  animation-delay: calc(min(var(--i, 0), 8) * 60ms);
+}
+
+/* 侧栏 widget 与 Hero 也走同一套语言 */
+.hero,
+.sidebar > .card {
+  animation: fade-up 0.5s ease both;
+}
+.sidebar > .card:nth-child(2) {
+  animation-delay: 80ms;
+}
+.sidebar > .card:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+/* ===== 无障碍降级 =====
+   用极短时长而非 none：若某元素依赖 animationend 事件，
+   置为 none 会让它永远停在初始态（透明）。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,214 @@
+/* ===== 页面容器与网格 ===== */
+.page {
+  max-width: var(--maxw-page);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+main {
+  /* 用视口比例代替硬编码的头部/页脚高度，避免页脚改动后数值跟着失真 */
+  min-height: 60vh;
+  padding: 32px 0 64px;
+}
+
+.page-grid {
+  display: grid;
+  gap: 32px;
+  align-items: start;
+}
+.layout-sidebar {
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+}
+.layout-toc {
+  grid-template-columns: minmax(0, 1fr) var(--toc-w);
+}
+.layout-plain {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: var(--maxw-prose);
+  margin: 0 auto;
+}
+.page-main {
+  min-width: 0; /* 防止长代码块把网格撑破 */
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 76px;
+}
+
+/* ===== 顶部导航 ===== */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: saturate(180%) blur(12px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  gap: 16px;
+}
+.nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+.nav-brand:hover {
+  text-decoration: none;
+  color: var(--link);
+}
+/* 品牌名前的天蓝方块 */
+.nav-brand::before {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-links::-webkit-scrollbar {
+  display: none;
+}
+.nav-links a {
+  color: var(--text-soft);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+.nav-links a:hover {
+  color: var(--text);
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+.nav-links a[aria-current='page'] {
+  color: var(--text);
+  font-weight: 600;
+  background: var(--brand-soft);
+}
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--bg-soft);
+  border-color: var(--brand);
+}
+
+/* ===== 页脚 ===== */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-links,
+.footer-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.footer-links a,
+.footer-social a {
+  color: var(--text-soft);
+}
+.footer-links a:hover,
+.footer-social a:hover {
+  color: var(--link);
+  text-decoration: none;
+}
+
+/* ===== 响应式 ===== */
+/* TOC 空间不足时隐藏，正文占满 */
+@media (max-width: 1100px) {
+  .layout-toc {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toc {
+    display: none;
+  }
+}
+
+/* 侧栏转单列：display:contents 让 widget 变成网格直接子项，
+   再用 order 把个人卡片提到内容上方、分类标签压到内容下方 */
+@media (max-width: 960px) {
+  .layout-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sidebar {
+    display: contents;
+  }
+  .page-main {
+    order: 0;
+  }
+  .sidebar > .widget-profile {
+    order: -1;
+  }
+  /* 除头像卡之外的 widget 一律压到内容下方。
+     必须逐个列出：order 相同时按 DOM 顺序排，而 Sidebar 在 BaseLayout 里
+     渲染于 .page-main 之前，所以任何漏掉的 widget 会以 order:0 排到内容「上方」，
+     把文章列表挤下去。新增 widget 时记得加进这个选择器。 */
+  .sidebar > .widget-category,
+  .sidebar > .widget-tags,
+  .sidebar > .widget-featured,
+  .sidebar > .widget-random {
+    order: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 0 16px;
+  }
+  main {
+    padding: 20px 0 48px;
+  }
+  .nav-links a {
+    padding: 6px 8px;
+    font-size: 0.9rem;
+  }
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

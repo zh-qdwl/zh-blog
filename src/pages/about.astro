@@ -3,16 +3,23 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { AUTHOR } from '../consts';
 ---
 
-<BaseLayout title="关于" description="关于我">
+<BaseLayout title="关于" description="关于我" layout="plain">
   <article>
     <header class="article-header">
       <h1>关于</h1>
     </header>
     <div class="prose">
       <p>你好，我是 {AUTHOR}。这里是我的个人博客，用来记录编程、技术学习与日常思考。</p>
-      <p>这个博客用 <a href="https://astro.build" target="_blank" rel="noopener">Astro</a> 构建，部署在 Cloudflare Pages 上，全站静态、访问飞快。</p>
+      <p>这个博客用 <a href="https://astro.build" target="_blank" rel="noopener">Astro</a> 构建，全站静态、访问飞快。</p>
       <h2>联系我</h2>
-      <p>可以在 GitHub 上找到我，或者通过邮件联系。（在 <code>src/consts.ts</code> 里改成你自己的链接）</p>
+      <p>可以在 GitHub 上找到我，或者通过邮件联系。也欢迎去 <a href="/guestbook">留言页</a> 找我。</p>
     </div>
   </article>
 </BaseLayout>
+
+<style>
+  .article-header h1 {
+    font-size: 2rem;
+    margin: 0 0 24px;
+  }
+</style>

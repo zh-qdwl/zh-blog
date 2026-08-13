@@ -2,7 +2,9 @@
 title: 把博客部署到 Cloudflare Pages
 description: GitHub 连接 Cloudflare Pages，推送即自动上线，全程免费。
 pubDate: 2026-08-09
+category: 部署
 tags: ['部署', 'Cloudflare']
+featured: true
 ---
 
 这个博客是纯静态站点，最适合部署在 Cloudflare Pages 上：全球 CDN、免费额度充足、推送代码自动上线。

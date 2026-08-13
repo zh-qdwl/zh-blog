@@ -1,0 +1,276 @@
+/* ===== 重置 ===== */
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+  /* 锚点跳转时给固定头部留位置 */
+  scroll-padding-top: 76px;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4 {
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+/* 键盘焦点统一轮廓。用 --link 而非 --brand——
+   --brand 对白底仅 2.14:1，不达 WCAG 2.1 SC 1.4.11 非文字元素 3:1 的红线。 */
+:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ===== 工具类 ===== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+}
+
+/* 磨砂玻璃。用在首页大卡与运行时间条上。
+   backdrop-filter 不被支持时回退为实色 --card，否则半透明底会让文字读不清。 */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  box-shadow: var(--shadow-glass);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--card);
+    border-color: var(--border);
+  }
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--link);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+a.tag:hover {
+  background: var(--brand);
+  color: var(--brand-ink);
+  text-decoration: none;
+}
+
+/* 索引页用的大号标签 */
+.tag-lg {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.tag-lg:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink);
+  text-decoration: none;
+}
+.tag-lg .count {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+.tag-lg:hover .count {
+  color: var(--brand-ink-soft);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.15s ease;
+}
+.btn:hover {
+  filter: brightness(1.05);
+  text-decoration: none;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+  margin: 0 0 16px;
+}
+/* 标题左侧的天蓝短杠 */
+.section-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+.post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+
+/* 列表类页面（标签/分类/归档/博客列表）的大标题 */
+.page-title {
+  margin: 0 0 24px;
+  font-size: 1.9rem;
+}
+
+/* 标签/分类详情页顶部的返回面包屑 */
+.crumb {
+  margin: 0 0 4px;
+  font-size: 0.88rem;
+  color: var(--text-soft);
+}
+
+/* 文章卡片纵向列表容器（语义上是 <ul>，重置默认列表样式，<li> 仍作为 flex 子项参与布局） */
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* 侧栏各 widget（分类/标签/随机推荐/作者精选）统一的小标题样式 */
+.widget-title {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+}
+
+/* ===== 文章正文 ===== */
+.prose {
+  font-size: 1.02rem;
+}
+.prose h2 {
+  margin-top: 2em;
+  font-size: 1.5rem;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+.prose h3 {
+  margin-top: 1.6em;
+  font-size: 1.2rem;
+}
+.prose p,
+.prose ul,
+.prose ol {
+  margin: 1em 0;
+}
+.prose img {
+  border-radius: var(--radius);
+}
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
+}
+.prose pre {
+  padding: 16px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.prose pre code {
+  background: transparent;
+  padding: 0;
+}
+/* Shiki 双主题：暗色模式下切到 github-dark */
+:root[data-theme='dark'] .astro-code,
+:root[data-theme='dark'] .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+.prose blockquote {
+  margin: 1.2em 0;
+  padding: 0.4em 1.2em;
+  border-left: 3px solid var(--brand);
+  color: var(--text-soft);
+  background: var(--bg-soft);
+  border-radius: 0 8px 8px 0;
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.92rem;
+}
+.prose th,
+.prose td {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+}
+.prose th {
+  background: var(--bg-soft);
+}
+/* 注意：不要在这里补 scroll-margin-top！
+   html 的 scroll-padding-top 已经统一处理了锚点跳转的头部偏移，
+   若标题再叠加 scroll-margin-top，两者会相加（76+76=152px），
+   导致跳转位置远离固定头部，还会让 Toc.astro 的滚动高亮判断错位。 */

@@ -1,0 +1,75 @@
+---
+import { getPublishedPosts } from '../../lib/posts';
+
+// 服务端先固定显示前 3 条（无 JS 时的兜底效果），其余 hidden。
+// 客户端加载后再从全部候选里随机洗牌，重新挑 3 条展示——
+// 这样无 JS 也有内容，有 JS 则每次访问都不同。
+// 候选池上限 12：随机 3 条已经足够「每次访问都不同」，
+// 若不设上限，文章一多，服务端就要把成百上千条 hidden <li> 塞进 HTML。
+const posts = (await getPublishedPosts()).slice(0, 12);
+---
+
+{posts.length > 0 && (
+  <div class="card widget widget-random">
+    <p class="widget-title">随机推荐</p>
+    <ul data-random-pool>
+      {posts.map((post, index) => (
+        <li hidden={index >= 3}>
+          <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+<style>
+  .widget-random {
+    padding: 20px;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  li a {
+    display: block;
+    padding: 7px 10px;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  li a:hover {
+    background: var(--brand-soft);
+    color: var(--link);
+    text-decoration: none;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const ul = document.querySelector('[data-random-pool]');
+    if (!ul) return;
+    const items = [...ul.children];
+    // Fisher-Yates 洗牌（对全部候选进行，而非仅对已显示的 3 条）
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    const picked = items.slice(0, 3);
+    const pickedSet = new Set(picked);
+    // 先重置所有项的显示状态，保证幂等（重复执行不会累积或多显示）
+    items.forEach((li) => {
+      li.hidden = !pickedSet.has(li);
+    });
+    // 把选中的 3 条移到列表最前面（保持洗牌后的相对顺序），与标题暗示的一致
+    picked
+      .slice()
+      .reverse()
+      .forEach((li) => ul.insertBefore(li, ul.firstChild));
+  })();
+</script>

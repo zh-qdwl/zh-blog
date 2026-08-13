@@ -2,7 +2,10 @@
 title: 如何写一篇新文章
 description: 三步搞定：新建 Markdown 文件、填写文章信息、写正文。
 pubDate: 2026-08-10
+category: 教程
 tags: ['教程', '指南']
+cover: /avatar.svg
+pinned: false
 ---
 
 在这个博客里发一篇新文章非常简单，只需要三步。
@@ -22,7 +25,10 @@ tags: ['教程', '指南']
 title: 文章标题
 description: 一句话简介，会显示在列表和搜索结果里
 pubDate: 2026-08-10
+category: 教程
 tags: ['标签一', '标签二']
+cover: /my-cover.png
+pinned: false
 ---
 ```
 
@@ -33,6 +39,10 @@ tags: ['标签一', '标签二']
 - **pubDate**（必填）：发布日期
 - **updatedDate**（可选）：更新日期
 - **tags**（可选）：标签数组
+- **category**（可选）：分类，一篇文章只归一类，会出现在 `/categories` 分类页里；不填的话统一归到「未分类」
+- **cover**（可选）：封面图路径，会显示在列表卡片上；不填也没关系，卡片会自动用一块渐变色顶上，不强制每篇都配图
+- **pinned**（可选）：设为 `true` 时置顶，会排在首页和列表页最前面，并带一个「置顶」角标
+- **featured**（可选）：设为 `true` 时会被侧栏「作者精选」widget 收录；这是唯一的收录方式——没有任何一篇文章标记 `featured` 时，这个 widget 不会显示
 - **draft**（可选）：设为 `true` 时是草稿，不会发布
 
 ## 第三步：写正文
