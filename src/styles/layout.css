@@ -11,6 +11,14 @@ main {
   padding: 32px 0 64px;
 }
 
+/* 整屏 Hero 的页面：Hero 必须从 y=0 开始，顶部留白改由它下方的 .page 承担 */
+main.has-hero {
+  padding-top: 0;
+}
+main.has-hero > .page {
+  margin-top: 32px;
+}
+
 .page-grid {
   display: grid;
   gap: 32px;
@@ -47,20 +55,70 @@ main {
   backdrop-filter: saturate(180%) blur(12px);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   border-bottom: 1px solid var(--border);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+/* ===== 透明浮层态：只出现在带整屏 Hero 的页面（首页） =====
+   用 fixed 而非 sticky —— sticky 会在文档流里实打实占掉 60px，
+   图的顶部就会被切出一条实心边，沉浸感就没了。fixed 不占位。
+   滚过 Hero 后由 Header.astro 的脚本加上 .is-solid，样式全部落回默认实心态，
+   所以下面每条都写成 :not(.is-solid)，而不是「先覆盖再覆盖回去」。 */
+.site-header.is-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+}
+.site-header.is-overlay:not(.is-solid) {
+  background: transparent;
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* 文字色压在 Hero 遮罩上。对比度不靠底图，靠 --hero-scrim 的 α，见 tokens.css。
+   底纹也一律走 --hero-veil-* 令牌：写死 rgba(255,255,255,…) 的话，
+   浅色底图那套（深字）会变成白底纹压深字，hover 态直接糊掉。 */
+/* 注意这几条只能命中「顶栏上那一层」链接，所以用 > 限定直接子元素。
+   写成 .nav-links a 会连下拉面板里的链接一起染白——那个面板是实色卡片底，
+   白字压上去直接看不见。 */
+.site-header.is-overlay:not(.is-solid) .nav-brand,
+.site-header.is-overlay:not(.is-solid) .nav-brand:hover,
+.site-header.is-overlay:not(.is-solid) .nav-links > a,
+.site-header.is-overlay:not(.is-solid) .nav-item > a,
+.site-header.is-overlay:not(.is-solid) .icon-btn {
+  color: var(--hero-ink);
+}
+.site-header.is-overlay:not(.is-solid) .nav-links > a:hover,
+.site-header.is-overlay:not(.is-solid) .nav-item > a:hover,
+.site-header.is-overlay:not(.is-solid) .nav-links > a[aria-current='page'],
+.site-header.is-overlay:not(.is-solid) .nav-item.is-branch > a {
+  /* 默认态用的是 --bg-soft / --brand-soft，压在底图上都看不出来 */
+  background: var(--hero-veil);
+  color: var(--hero-ink);
+}
+.site-header.is-overlay:not(.is-solid) .icon-btn {
+  border-color: var(--hero-veil-line);
+}
+.site-header.is-overlay:not(.is-solid) .icon-btn:hover {
+  background: var(--hero-veil);
+  border-color: var(--hero-veil-line-strong);
+}
+/* 键盘焦点轮廓默认是 --link（深蓝），压在暗图上看不清 */
+.site-header.is-overlay:not(.is-solid) :focus-visible {
+  outline-color: var(--hero-ink);
 }
 .nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   height: 60px;
   gap: 16px;
 }
 .nav-brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   font-weight: 800;
   font-size: 1.05rem;
+  /* 品牌名当标志用：拉开字距，跟右侧那组紧凑的导航项拉开性格 */
+  letter-spacing: 0.18em;
   color: var(--text);
   white-space: nowrap;
 }
@@ -68,38 +126,115 @@ main {
   text-decoration: none;
   color: var(--link);
 }
-/* 品牌名前的天蓝方块 */
-.nav-brand::before {
-  content: '';
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
-}
+
+/* 导航项与右侧图标按钮并成一组靠右。
+   原本 .nav 是 space-between，三块各占一头，链接吊在正中；
+   改用 margin-left:auto 把空隙全部推到品牌名后面。 */
 .nav-links {
   display: flex;
   align-items: center;
   gap: 2px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  margin-left: auto;
 }
-.nav-links::-webkit-scrollbar {
-  display: none;
-}
-.nav-links a {
+/* 顶栏那一层的链接（含带下拉的父项）。用 > 限定，避免波及下拉面板里的链接。 */
+.nav-links > a,
+.nav-item > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--text-soft);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 0.95rem;
   white-space: nowrap;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-.nav-links a:hover {
+.nav-links > a:hover,
+.nav-item > a:hover {
   color: var(--text);
   background: var(--bg-soft);
   text-decoration: none;
 }
-.nav-links a[aria-current='page'] {
+.nav-links > a[aria-current='page'],
+.nav-item.is-branch > a {
+  color: var(--text);
+  font-weight: 600;
+  background: var(--brand-soft);
+}
+.nav-icon {
+  flex-shrink: 0;
+}
+
+/* ===== 下拉子菜单 =====
+   纯 CSS：父容器 :hover 或 :focus-within 时展开。
+   用 :focus-within 而非只用 :hover，键盘 Tab 到父项时也能展开子项。
+   注意 .nav-links 上不能有 overflow-x:auto —— 那会把绝对定位的面板裁掉，
+   所以横向滚动只在窄屏那套规则里开（窄屏本来也不用下拉，见媒体查询）。 */
+.nav-item {
+  position: relative;
+}
+.nav-caret {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: rotate var(--dur) var(--ease);
+}
+.nav-item:hover .nav-caret,
+.nav-item:focus-within .nav-caret {
+  rotate: 180deg;
+}
+.nav-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 1;
+  min-width: 148px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lift);
+  opacity: 0;
+  visibility: hidden;
+  translate: -50% -6px;
+  transition:
+    opacity var(--dur) var(--ease),
+    translate var(--dur) var(--ease),
+    visibility var(--dur);
+}
+/* 父项和面板之间隔着 8px，鼠标穿过这段空隙时 hover 会断，面板一闪就没。
+   用一条透明的伪元素把这段空隙盖住，指针始终留在容器内。 */
+.nav-menu::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -8px;
+  height: 8px;
+}
+.nav-item:hover .nav-menu,
+.nav-item:focus-within .nav-menu {
+  opacity: 1;
+  visibility: visible;
+  translate: -50% 0;
+}
+.nav-menu a {
+  display: block;
+  padding: 7px 12px;
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+  white-space: nowrap;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.nav-menu a:hover {
+  color: var(--text);
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+.nav-menu a[aria-current='page'] {
   color: var(--text);
   font-weight: 600;
   background: var(--brand-soft);
@@ -108,6 +243,69 @@ main {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ===== 窄屏导航（汉堡按钮 + 面板） =====
+   两者在桌面都不存在，只在 640px 断点内出现，见文件末尾的媒体查询。
+
+   这里必须写成 .icon-btn.nav-toggle 而不是 .nav-toggle：
+   按钮同时带着 .icon-btn，而 .icon-btn{display:inline-flex} 就在下面几行，
+   同为单类选择器时后写的赢——单写 .nav-toggle 的话按钮在桌面会一直露着。 */
+.icon-btn.nav-toggle {
+  display: none;
+}
+.nav-toggle .ico-close {
+  display: none;
+}
+.nav-toggle[aria-expanded='true'] .ico-menu {
+  display: none;
+}
+.nav-toggle[aria-expanded='true'] .ico-close {
+  display: block;
+}
+
+.mobile-nav {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  /* 面板是实色的，即使头部处于透明浮层态也一样——
+     半透明面板压在照片上，里面的文字就没法保证对比度了 */
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-lift);
+  max-height: calc(100dvh - 60px);
+  overflow-y: auto;
+}
+.mobile-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 12px 0 16px;
+}
+.mobile-nav .sub {
+  padding: 0 0 0 12px;
+}
+.mobile-nav .group {
+  margin: 12px 0 2px;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  color: var(--text-soft);
+}
+.mobile-nav a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+.mobile-nav a:hover {
+  background: var(--bg-soft);
+  text-decoration: none;
+}
+.mobile-nav a[aria-current='page'] {
+  background: var(--brand-soft);
+  font-weight: 600;
 }
 .icon-btn {
   display: inline-flex;
@@ -203,9 +401,21 @@ main {
   main {
     padding: 20px 0 48px;
   }
-  .nav-links a {
-    padding: 6px 8px;
-    font-size: 0.9rem;
+
+  /* 窄屏换成汉堡面板。
+     顶栏那一行放不下：品牌名 + 链接 + 两个按钮挤在 343px 里，
+     留给链接的可视宽度只有约 134px，横向滚动一次只看得到一个半项。
+     触屏也没有 hover，桌面那套下拉在这里本来就展不开。 */
+  .nav-links {
+    display: none;
+  }
+  .icon-btn.nav-toggle {
+    display: inline-flex;
+  }
+  /* 面板只在「窄屏 且 已展开」时出现。
+     display:block 只写在这条媒体查询里，所以桌面无论 JS 状态如何都不会显示它。 */
+  .site-header.is-nav-open .mobile-nav {
+    display: block;
   }
   .footer-inner {
     flex-direction: column;

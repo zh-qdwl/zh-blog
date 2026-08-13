@@ -17,7 +17,8 @@ npm test         # 运行单元测试（纯数据层 lib/、样式变量 tokens.
 ```
 src/
 ├── consts.ts          # 站点标题、导航、社交链接（先改这里，含 SITE_START 建站日期、
-                        # AUTHOR_ROLE 身份描述，以及 gitee/juejin/csdn 等可选社交字段）
+                        # AUTHOR_ROLE 身份描述，gitee/juejin/csdn 等可选社交字段，
+                        # 以及首页整屏 Hero 的 HERO_IMAGE / HERO_FOCUS / HERO_TAGLINES）
 ├── content/blog/      # 所有文章（Markdown），新增文章就放这里
 ├── content.config.ts  # 文章字段定义
 ├── components/        # 页头、页脚、文章卡片等组件
@@ -27,7 +28,7 @@ src/
 ├── pages/              # 路由页面，见下方「页面路由」
 └── styles/             # tokens（配色变量）/ base（重置与排版）/ layout（网格与断点）
                         # / motion（入场动效），global.css 只是汇总引入以上四个文件
-public/               # 静态资源（favicon 等）
+public/               # 静态资源（favicon、首页整屏 Hero 的底图等）
 astro.config.mjs      # 站点地址 site、集成配置
 ```
 
@@ -47,6 +48,29 @@ astro.config.mjs      # 站点地址 site、集成配置
 1. `src/consts.ts` —— 站点标题、你的名字、GitHub / 邮箱链接
 2. `astro.config.mjs` —— 把 `site` 改成你的正式网址
 3. `src/content/blog/` —— 删掉示例文章，写你自己的
+
+## 换首页的整屏底图
+
+把新图放进 `public/`，改 `src/consts.ts` 的 `HERO_IMAGE` 指向它即可。三点注意：
+
+- **跟着改 `HERO_TONE`**。它决定 Hero 上用深字还是白字：浅色底图填 `'light'`，
+  暗色底图填 `'dark'`。反了会直接掉到 2:1 以下，肉眼可见地读不出来。拿不准就量一下：
+  ```bash
+  node -e "require('sharp')('public/你的图.webp').stats().then(s=>console.log(s.channels.slice(0,3).map(c=>Math.round(c.mean)).join(',')))"
+  ```
+  三个值都偏高（>170）就选 `'light'`。
+
+- **控制体积**。它是首页的 LCP 元素，建议 1920 宽、WebP、300KB 以内。仓库里装了 sharp
+  （Astro 的依赖），可以直接压：
+  ```bash
+  node -e "require('sharp')('原图.jpg').resize({width:1920}).webp({quality:72}).toFile('public/hero.webp')"
+  ```
+- **必要时调 `HERO_FOCUS`**。竖屏会把宽图裁成一条窄带，默认居中常常正好切掉主体；
+  这个值就是 CSS 的 `object-position`，改它把主体挪回可见区。
+
+文字压在图上的可读性不依赖"这张图够暗/够亮"——`--hero-scrim` 遮罩负责兜底，
+`tokens.test.ts` 按各自的最坏底图守着：白字那套算"底图纯白"，深字那套算"底图纯黑"。
+所以只要 `HERO_TONE` 填对，换任何图都不会掉对比度。
 
 ## 写新文章
 

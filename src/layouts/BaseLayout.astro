@@ -3,7 +3,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Sidebar from '../components/Sidebar.astro';
 import SearchPanel from '../components/SearchPanel.astro';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+import { SITE_TITLE, SITE_DESCRIPTION, HERO_TONE } from '../consts';
 import '../styles/global.css';
 
 interface Props {
@@ -13,13 +13,17 @@ interface Props {
   layout?: 'sidebar' | 'toc' | 'plain';
 }
 const { title, description, layout = 'plain' } = Astro.props;
+// 有 Hero 的页面：Hero 顶到 y=0，导航转成透明浮层压在图上
+const hasHero = Astro.slots.has('hero');
+// HERO_TONE 写在 <html> 上而不是 .hero 上：透明导航要用同一套 --hero-* 令牌，
+// 而它是 main 的兄弟节点，挂在 .hero 内部继承不到。
 const pageTitle = title ? `${title} · ${SITE_TITLE}` : SITE_TITLE;
 const pageDesc = description ?? SITE_DESCRIPTION;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-hero-tone={HERO_TONE}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -40,11 +44,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     </script>
   </head>
   <body>
-    <Header />
-    <main>
-      <div class="page">
-        <!-- Hero 是通栏元素，渲染在网格之上，不占网格列 -->
-        <slot name="hero" />
+    <Header transparent={hasHero} />
+    <main class:list={[hasHero && 'has-hero']}>
+      <!-- Hero 在 .page 之外：它要撑满 100vw，留在 max-width:1200px 的容器里
+           就得靠负 margin 破格，不如直接放到容器外面 -->
+      <slot name="hero" />
+      <!-- id 供 Hero 底部的向下箭头锚定；偏移由 base.css 的 scroll-padding-top 统一处理 -->
+      <div class="page" id="content">
         <div class={`page-grid layout-${layout}`}>
           {layout === 'sidebar' && <Sidebar />}
           <div class="page-main"><slot /></div>

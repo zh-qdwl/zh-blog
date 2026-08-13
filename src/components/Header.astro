@@ -1,5 +1,12 @@
 ---
-import { SITE_TITLE, NAV_LINKS } from '../consts';
+import { SITE_BRAND, NAV_LINKS } from '../consts';
+import { NAV_ICONS } from '../lib/nav-icons';
+
+interface Props {
+  /** 页面带整屏 Hero 时为 true：导航透明浮在图上，滚过 Hero 后自动变回实心 */
+  transparent?: boolean;
+}
+const { transparent = false } = Astro.props;
 
 // 高亮当前页：/blog/xxx 也要点亮「文章」，所以用前缀匹配（首页除外）
 const path = Astro.url.pathname;
@@ -7,19 +14,87 @@ function isCurrent(href: string): boolean {
   if (href === '/') return path === '/';
   return path === href || path.startsWith(`${href}/`);
 }
+
+// 带下拉的父项：任一子项命中就算「当前板块」。
+// 注意这里给的是一个 class 而不是 aria-current——aria-current="page" 该落在
+// 真正的当前页链接上，父项只是所在板块，两个都标会让读屏报出两个「当前页」。
+function isCurrentBranch(link: (typeof NAV_LINKS)[number]): boolean {
+  if (isCurrent(link.href)) return true;
+  return 'children' in link && !!link.children?.some((c) => isCurrent(c.href));
+}
 ---
 
-<header class="site-header">
+<header class:list={['site-header', transparent && 'is-overlay']}>
   <div class="page nav">
-    <a href="/" class="nav-brand">{SITE_TITLE}</a>
+    <a href="/" class="nav-brand">{SITE_BRAND}</a>
     <nav class="nav-links" aria-label="主导航">
-      {NAV_LINKS.map((link) => (
-        <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
-          {link.label}
-        </a>
-      ))}
+      {NAV_LINKS.map((link) =>
+        'children' in link && link.children ? (
+          /* 下拉用「父容器 :hover / :focus-within」纯 CSS 展开，不写 JS。
+             用 :focus-within 而不是只用 :hover，是为了键盘用户 Tab 到父项时也能展开。
+             这里没有 aria-expanded —— 没有 JS 更新它的话，写死一个 false 比不写更糟。
+             嵌套 <ul> 本身就是读屏能理解的子菜单结构。 */
+          <div class:list={['nav-item', isCurrentBranch(link) && 'is-branch']}>
+            <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+              <svg
+                class="nav-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                set:html={NAV_ICONS[link.icon]}
+              />
+              <span>{link.label}</span>
+              <svg class="nav-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6"></path></svg>
+            </a>
+            <ul class="nav-menu">
+              {link.children.map((child) => (
+                <li>
+                  <a href={child.href} aria-current={isCurrent(child.href) ? 'page' : undefined}>
+                    {child.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+            <svg
+              class="nav-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              set:html={NAV_ICONS[link.icon]}
+            />
+            <span>{link.label}</span>
+          </a>
+        )
+      )}
     </nav>
     <div class="nav-actions">
+      <!-- 窄屏专用。aria-expanded 这里是真的会被下面的脚本更新，所以写它才有意义
+           （下拉那个是纯 CSS，没有 JS 能维护状态，就没写）。 -->
+      <button
+        id="nav-toggle"
+        class="icon-btn nav-toggle"
+        aria-label="打开导航"
+        aria-expanded="false"
+        aria-controls="mobile-nav"
+      >
+        <svg class="ico-menu" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+        <svg class="ico-close" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
       <button id="search-open" class="icon-btn" aria-label="搜索文章">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
       </button>
@@ -28,6 +103,40 @@ function isCurrent(href: string): boolean {
         <svg id="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
       </button>
     </div>
+  </div>
+
+  <!-- 窄屏导航面板。绝对定位悬在头部下方而不是撑开头部——
+       .site-header 在内页是 sticky、首页是 fixed，两者都能当定位祖先；
+       若让它占流内空间，每次展开都会把正文往下顶一截。 -->
+  <div id="mobile-nav" class="mobile-nav">
+    <nav class="page" aria-label="移动端导航">
+      <ul>
+        {NAV_LINKS.map((link) =>
+          'children' in link && link.children ? (
+            <li>
+              {/* 父项在这里只当分组标题，不做链接：它的 href 和第一个子项
+                  指向同一个页面（文章→全部文章、关于→关于我），做成链接就是重复项 */}
+              <p class="group">{link.label}</p>
+              <ul class="sub">
+                {link.children.map((child) => (
+                  <li>
+                    <a href={child.href} aria-current={isCurrent(child.href) ? 'page' : undefined}>
+                      {child.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ) : (
+            <li>
+              <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+                {link.label}
+              </a>
+            </li>
+          )
+        )}
+      </ul>
+    </nav>
   </div>
 </header>
 
@@ -53,4 +162,76 @@ function isCurrent(href: string): boolean {
     localStorage.setItem('theme', next);
     apply(next);
   });
+</script>
+
+<script>
+  // 透明浮层态的导航滚过整屏 Hero 后变回实心。
+  // 只在带 Hero 的页面上有这两个元素，其余页面这段直接跳过。
+  const header = document.querySelector<HTMLElement>('.site-header.is-overlay');
+  const hero = document.querySelector<HTMLElement>('.hero');
+
+  if (header && hero) {
+    const sync = () => {
+      // 减去导航自身高度：等导航整条都压到 Hero 之外了才切，
+      // 否则会出现「半条实心导航压在图上」的中间态
+      const past = window.scrollY > hero.offsetHeight - header.offsetHeight;
+      header.classList.toggle('is-solid', past);
+    };
+    addEventListener('scroll', sync, { passive: true });
+
+    // 用 ResizeObserver 而不是「执行到这里时同步一次 + 监听 resize」。
+    // 这个脚本跑起来时 Hero 的样式未必已经落地（dev 下组件样式由 JS 注入），
+    // 那一刻 hero.offsetHeight 还不是整屏高度，算出的阈值是负的，
+    // 于是首页一进来导航就错误地是实心态——实测踩到过。
+    // RO 在开始观察时立即触发一次，之后 Hero 高度每次变化（样式到位、
+    // 转屏、地址栏收放导致 svh 变动）都会重算，比 resize 事件更贴切。
+    new ResizeObserver(sync).observe(hero);
+  }
+</script>
+
+<script>
+  // 窄屏导航面板的开合。
+  const navToggle = document.getElementById('nav-toggle');
+  const navPanel = document.getElementById('mobile-nav');
+
+  const navHeader = document.querySelector<HTMLElement>('.site-header');
+
+  if (navToggle && navPanel && navHeader) {
+    // 开合状态放在 .site-header 的类上，面板显不显示完全由 CSS 决定
+    // （见 layout.css：这条只写在 640px 媒体查询里）。
+    // 这样「桌面不该出现这个面板」就是断点本身的保证，不依赖任何 JS 事件送达；
+    // 早先用 hidden 属性时，只要下面那条 matchMedia 没触发，
+    // 从窄屏展开→拉宽→再缩回窄屏，面板就会自己弹出来。
+    const isOpen = () => navHeader.classList.contains('is-nav-open');
+    const setOpen = (open: boolean) => {
+      navHeader.classList.toggle('is-nav-open', open);
+      navToggle.setAttribute('aria-expanded', String(open));
+      // 图标随 aria-expanded 由 CSS 切换，这里只维护无障碍名称
+      navToggle.setAttribute('aria-label', open ? '关闭导航' : '打开导航');
+    };
+
+    navToggle.addEventListener('click', () => setOpen(!isOpen()));
+
+    // Esc 关闭并把焦点还回按钮，否则键盘用户会停在一个已经消失的元素上
+    addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen()) {
+        setOpen(false);
+        navToggle.focus();
+      }
+    });
+
+    // 点面板和按钮以外的地方关闭
+    document.addEventListener('click', (e) => {
+      if (!isOpen()) return;
+      const t = e.target as Node;
+      if (navPanel.contains(t) || navToggle.contains(t)) return;
+      setOpen(false);
+    });
+
+    // 拉宽回桌面时顺手把状态也复位，让按钮的 aria-expanded 不至于停在 true。
+    // 面板的显示已经由 CSS 兜住了，这条只是收尾。
+    matchMedia('(min-width: 641px)').addEventListener('change', (e) => {
+      if (e.matches) setOpen(false);
+    });
+  }
 </script>

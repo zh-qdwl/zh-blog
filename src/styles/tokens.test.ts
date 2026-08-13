@@ -109,6 +109,77 @@ describe('配色对比度不变量', () => {
   });
 });
 
+describe('整屏 Hero 的遮罩合同', () => {
+  // 底图由 HERO_IMAGE 指定、随时可换，所以「当前这张图够暗/够亮」不能作为对比度依据。
+  // 唯一在换图后仍然成立的保证是遮罩本身，这里就按各套配色的最坏底图断言。
+  //
+  // 两套的最坏方向相反，写反了测试会变成一张永远通过的空头支票：
+  //   白字压深色遮罩 → 最坏是底图纯白（合成后最亮，与白字最接近）
+  //   深字压浅色遮罩 → 最坏是底图纯黑（合成后最暗，与深字最接近）
+  const css = readFileSync(TOKENS, 'utf-8');
+
+  const tones: Array<[string, RegExp, string]> = [
+    ['暗色底图（默认 :root）', /:root\s*\{([^}]+)\}/, '#ffffff'],
+    ["浅色底图（:root[data-hero-tone='light']）", /:root\[data-hero-tone='light'\]\s*\{([^}]+)\}/, '#000000'],
+  ];
+
+  for (const [name, blockRe, worstImage] of tones) {
+    it(`${name}：底图取最坏值 ${worstImage} 时文字仍不低于 ${AA}:1`, () => {
+      const m = css.match(blockRe);
+      expect(m, `tokens.css 应包含 ${name} 的令牌块`).not.toBeNull();
+      const tokens = parseBlock(m![1]);
+
+      const scrim = tokens['--hero-scrim'];
+      expect(scrim, `${name} 缺少 --hero-scrim`).toBeTruthy();
+      const worstCase = composite(parseColor(scrim), parseColor(worstImage));
+
+      const fg = '--hero-ink';
+      expect(tokens[fg], `${name} 缺少 ${fg}`).toBeTruthy();
+      const ratio = contrastRatio(tokens[fg], worstCase);
+      expect(
+        ratio,
+        `${name} ${fg} 压在「${worstImage} 底图 + 遮罩」上 = ${ratio}:1`
+      ).toBeGreaterThanOrEqual(AA);
+    });
+  }
+
+  // 中央遮罩去掉后，打字机文案直接压在底图上，改由每个字自带的一圈实色描边
+  // （Hero.astro 里 8 条 0 模糊的 text-shadow）保证可读性。描边不透明，
+  // 所以字形边缘的底色恒等于 --hero-halo，这条对比度是可以断言的——
+  // 不像 opacity 或模糊光晕那样是浏览器合成出来、令牌系统看不见的颜色。
+  for (const [name, blockRe] of [
+    ['暗色底图（默认 :root）', /:root\s*\{([^}]+)\}/],
+    ["浅色底图（:root[data-hero-tone='light']）", /:root\[data-hero-tone='light'\]\s*\{([^}]+)\}/],
+  ] as Array<[string, RegExp]>) {
+    it(`${name}：文案描边 --hero-halo 对 --hero-ink 不低于 ${AA}:1`, () => {
+      const tokens = parseBlock(readFileSync(TOKENS, 'utf-8').match(blockRe)![1]);
+      for (const role of ['--hero-ink', '--hero-halo']) {
+        expect(tokens[role], `${name} 缺少 ${role}`).toBeTruthy();
+      }
+      const ratio = contrastRatio(tokens['--hero-ink'], tokens['--hero-halo']);
+      expect(ratio, `${name} --hero-ink 对 --hero-halo = ${ratio}:1`).toBeGreaterThanOrEqual(AA);
+    });
+  }
+
+  it('两套配色必须成对声明，缺一项就会在切换 HERO_TONE 时静默沿用另一套的值', () => {
+    const roles = [
+      '--hero-ink',
+      '--hero-halo',
+      '--hero-scrim',
+      '--hero-veil',
+      '--hero-veil-line',
+      '--hero-veil-line-strong',
+      '--hero-fallback',
+    ];
+    for (const [name, blockRe] of tones) {
+      const tokens = parseBlock(css.match(blockRe)![1]);
+      for (const role of roles) {
+        expect(tokens[role], `${name} 缺少 ${role}`).toBeTruthy();
+      }
+    }
+  });
+});
+
 describe('配色角色契约', () => {
   const { light, dark } = readThemes();
 

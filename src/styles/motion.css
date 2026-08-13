@@ -24,8 +24,9 @@
   animation-delay: calc(min(var(--i, 0), 8) * 60ms);
 }
 
-/* 侧栏 widget 与 Hero 也走同一套语言 */
-.hero,
+/* 侧栏 widget 也走同一套语言。
+   注意 .hero 不在这里：它现在是整屏元素，整块上浮 12px 会在页顶露出一条缝，
+   入场动效改由 Hero.astro 自己加在内部的 .hero-body 上。 */
 .sidebar > .card {
   animation: fade-up 0.5s ease both;
 }

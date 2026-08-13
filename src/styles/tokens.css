@@ -8,10 +8,45 @@
   --brand-strong: #0ea5e9;
   --brand-ink: #0b1b2b;
   --brand-soft: rgba(56, 189, 248, 0.16);
-  /* Hero 上的次要文字。不用 opacity 衰减 --brand-ink——
-     opacity 后的实际前景色是合成出来的，令牌系统与对比度测试都看不见它，
-     Hero 的链接就是这样悄悄掉到 3.34:1 的。这里用不透明值，测试才能守住。 */
+  /* 压在品牌色实底上的次要文字（当前消费方：base.css 的 .tag-lg:hover .count）。
+     不用 opacity 衰减 --brand-ink——opacity 后的实际前景色是浏览器合成出来的，
+     令牌系统与对比度测试都看不见它，旧版 Hero 的链接就是这样悄悄掉到 3.34:1 的。
+     这里用不透明值，测试才能守住。 */
   --brand-ink-soft: #08131f;
+
+  /* ===== 整屏 Hero =====
+     底图由 HERO_IMAGE 指定、随时可换，所以「这张图本来就够暗/够亮」不能作为
+     对比度依据。唯一在换图后仍然成立的保证是遮罩自己。
+
+     两套配色由 consts.ts 的 HERO_TONE 选择，BaseLayout 写成 <html data-hero-tone>：
+       'dark'（默认，下面这组）—— 暗色底图，白字 + 深色遮罩
+       'light'（见下一个块）  —— 浅色底图，深字 + 浅色遮罩
+
+     两套的最坏情况方向相反，这一点很容易搞错：
+       白字压深色遮罩，最坏是底图**纯白**（遮罩合成后最亮）
+       深字压浅色遮罩，最坏是底图**纯黑**（遮罩合成后最暗）
+     tokens.test.ts 按各自的最坏情况分别断言。
+
+     注意 --hero-scrim 只铺顶部和底部两条边带（护着透明导航和向下箭头）。
+     中央那层原本罩着打字机文案的椭圆已经去掉——它在浅色平涂底图上会洗出
+     一块边界分明的亮斑。文案改由 --hero-halo 那圈实色描边保证，
+     两条路子各自有测试，见下面的 --hero-halo。
+
+     文字一律用不透明色值，不用 opacity 衰减，理由同上面的 --brand-ink-soft。 */
+  --hero-ink: #ffffff;
+  --hero-scrim: rgba(6, 12, 24, 0.66);
+  /* 打字机文案每个字自带的描边色。中央遮罩去掉后，文字直接压在底图上，
+     靠这一圈**不透明**描边把可读性重新变成可断言的东西：
+     描边是实色，字形边缘拿到的底色就是它，与 --hero-ink 的对比度由 tokens.test.ts 守着。
+     必须和 --hero-ink 反向（白字配深描边 / 深字配白描边）。 */
+  --hero-halo: #0a1424;
+  /* 透明导航上那几处半透明底纹：hover 背景、图标按钮描边。
+     它们不承载文字，只需 3:1 的非文字对比度，所以不进上面那张配对表。 */
+  --hero-veil: rgba(255, 255, 255, 0.18);
+  --hero-veil-line: rgba(255, 255, 255, 0.42);
+  --hero-veil-line-strong: rgba(255, 255, 255, 0.75);
+  /* 底图加载完成前的兜底底色，必须和文字色同向，否则首帧文字读不出来 */
+  --hero-fallback: linear-gradient(160deg, #0b1b2b, #0a1526);
 
   /* 链接色：亮色用深天蓝（对白底 5.93:1，过 WCAG AA）。
      注意 sky-600 #0284c7 只有 4.1:1，不达标，所以没选它。 */
@@ -51,6 +86,21 @@
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
     'Hiragino Sans GB', 'Microsoft YaHei', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
+
+/* 浅色底图用的 Hero 配色。与深浅色主题无关——底图是亮是暗，跟访客选深色模式是两回事，
+   所以这里用独立的 data-hero-tone，而不是挂在 data-theme 上。
+   遮罩 α=0.68 是按「叠在纯黑上」反推的：卡通线稿这类底图满图黑色描边，
+   深色文字压上去才是真正的最坏情况。合成后 rgb(173,173,173)，
+   对 --hero-ink 有 7.9:1。 */
+:root[data-hero-tone='light'] {
+  --hero-ink: #14181d;
+  --hero-scrim: rgba(255, 255, 255, 0.68);
+  --hero-halo: #ffffff;
+  --hero-veil: rgba(15, 23, 42, 0.12);
+  --hero-veil-line: rgba(15, 23, 42, 0.28);
+  --hero-veil-line-strong: rgba(15, 23, 42, 0.55);
+  --hero-fallback: linear-gradient(160deg, #f6e9ee, #e9eff8);
 }
 
 :root[data-theme='dark'] {

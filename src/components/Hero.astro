@@ -1,143 +1,231 @@
 ---
-import { SITE_TITLE, SITE_DESCRIPTION, AVATAR, SOCIAL } from '../consts';
-import { getStats } from '../lib/posts';
+import { SITE_TITLE, HERO_IMAGE, HERO_FOCUS, HERO_TAGLINES } from '../consts';
 
-const stats = await getStats();
+// 首句直接渲染进 HTML：无 JS、爬虫抓取、首帧渲染都能看到文案。
+// 下面的打字机脚本只是「接管」这段文字，而不是「产生」它。
+const firstLine = HERO_TAGLINES[0] ?? '';
 ---
 
 <section class="hero">
-  <div class="hero-inner">
-    <img class="hero-avatar" src={AVATAR} alt="头像" width="88" height="88" loading="eager" />
-    <div class="hero-text">
-      <h1>{SITE_TITLE}</h1>
-      <p class="hero-desc">{SITE_DESCRIPTION}</p>
-      <div class="hero-stats">
-        <a href="/archive"><strong>{stats.postCount}</strong> 篇文章</a>
-        <a href="/categories"><strong>{stats.categoryCount}</strong> 个分类</a>
-        <a href="/tags"><strong>{stats.tagCount}</strong> 个标签</a>
-      </div>
-      <div class="hero-social">
-        {SOCIAL.github && (
-          <a href={SOCIAL.github} target="_blank" rel="noopener" aria-label="GitHub">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.09.68-.22.68-.49v-1.9c-2.78.62-3.37-1.2-3.37-1.2-.46-1.18-1.11-1.5-1.11-1.5-.91-.63.07-.62.07-.62 1 .07 1.53 1.05 1.53 1.05.89 1.57 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.4 9.4 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49A10.06 10.06 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"></path></svg>
-          </a>
-        )}
-        {SOCIAL.email && (
-          <a href={`mailto:${SOCIAL.email}`} aria-label="Email">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect><path d="M3 6.5l9 6 9-6"></path></svg>
-          </a>
-        )}
-        {SOCIAL.rss && (
-          <a href={SOCIAL.rss} aria-label="RSS">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1.5" fill="currentColor"></circle></svg>
-          </a>
-        )}
-      </div>
-    </div>
+  <!-- alt 留空：这是装饰图，站名已经作为 h1 存在，读屏不该再念一遍 -->
+  <img
+    class="hero-img"
+    src={HERO_IMAGE}
+    alt=""
+    width="1920"
+    height="1080"
+    fetchpriority="high"
+    decoding="async"
+    style={`object-position:${HERO_FOCUS}`}
+  />
+  <div class="hero-scrim"></div>
+
+  <div class="hero-body">
+    <!-- 站名不在整屏上露出，但必须留在文档里：
+         去掉它首页就一个 h1 都没有了（.section-title 是 <p>，文章卡是 <h3>），
+         标题层级断裂，读屏用户也失去了「这是哪个站」的第一句话。 -->
+    <h1 class="sr-only">{SITE_TITLE}</h1>
+    <p class="hero-type"><span
+        class="hero-type-text"
+        data-taglines={JSON.stringify(HERO_TAGLINES)}>{firstLine}</span><span
+        class="hero-caret"
+        aria-hidden="true"></span></p>
   </div>
+
+  <a class="hero-down" href="#content" aria-label="向下滚动，查看文章">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+  </a>
 </section>
 
 <style>
-  /* 纯 CSS 渐变横幅，零图片依赖 */
   .hero {
     position: relative;
-    overflow: hidden;
-    border-radius: var(--radius-card);
-    margin-bottom: 32px;
-    min-height: clamp(240px, 42vh, 400px);
+    /* 100vh 在移动端会随地址栏收放而跳动；svh 取的是「小视口」高度，稳定。
+       两条都写：不支持 svh 的浏览器落回 vh。 */
+    height: 100vh;
+    height: 100svh;
     display: flex;
     align-items: center;
-    color: var(--brand-ink);
-    background:
-      radial-gradient(120% 130% at 12% 18%, rgba(255, 255, 255, 0.42), transparent 60%),
-      linear-gradient(160deg, var(--brand) 0%, var(--brand-strong) 100%);
+    justify-content: center;
+    overflow: hidden;
+    color: var(--hero-ink);
+    /* 底图加载完成前的兜底底色。它必须跟 --hero-ink 同向（暗底配白字 / 浅底配深字），
+       所以也做成令牌随 HERO_TONE 一起切，写死深色会让浅色模式的首帧读不出字。 */
+    background: var(--hero-fallback);
   }
-  /* 细网格纹理 */
-  .hero::before {
-    content: '';
+
+  .hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    /* 盖掉 base.css 里 img { height: auto } 的全局重置 */
+    height: 100%;
+    object-fit: cover;
+    /* object-position 由 HERO_FOCUS 内联写入 */
+  }
+
+  /* 遮罩只剩上下两条边带，各罩一处必须可读的元素：
+       ① 顶部实心带 —— 透明导航（高 60px，这里留到 72px，整条导航都在满 α 区内）
+       ② 底部实心带 —— 向下箭头
+     每条都是「先走一段实心、再开始渐隐」。若直接从 α 渐隐到 0，
+     元素所在位置拿到的就是衰减后的 α，tokens.test.ts 保证的那条对比度也就不成立了。
+
+     中央原本还有第三层椭圆罩着打字机文案，已去掉——它在浅色平涂底图上会洗出
+     一块边界分明的亮斑。文案改用每个字自带的实色描边，做法见下面的 .hero-type。 */
+  .hero-scrim {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(0deg, rgba(11, 27, 43, 0.05) 0 1px, transparent 1px 32px),
-      repeating-linear-gradient(90deg, rgba(11, 27, 43, 0.05) 0 1px, transparent 1px 32px);
+    background:
+      linear-gradient(180deg, var(--hero-scrim) 0, var(--hero-scrim) 72px, transparent 200px),
+      linear-gradient(0deg, var(--hero-scrim) 0, var(--hero-scrim) 72px, transparent 220px);
   }
-  .hero-inner {
+
+  .hero-body {
     position: relative;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 40px 36px;
-    flex-wrap: wrap;
+    z-index: 1;
+    max-width: 900px;
+    padding: 0 24px;
+    text-align: center;
+    /* fade-up 定义在 motion.css，是全站共用的入场语言 */
+    animation: fade-up 0.7s var(--ease) both;
   }
-  .hero-avatar {
-    width: 88px;
-    height: 88px;
-    border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 16px rgba(11, 27, 43, 0.18);
-    flex-shrink: 0;
+
+  /* 注意这里没有 .hero h1 的样式：站名是 .sr-only，给它写 margin/font-size
+     反而会赢过 .sr-only 的 margin:-1px（.hero h1 比 .sr-only 多一层选择器），
+     在文案上方顶出一段空白。要让站名重新可见，删掉 h1 的 sr-only 类再补样式。 */
+
+  /* 中央遮罩去掉后文字直接压在底图上，可读性改由每个字自带的一圈描边保证。
+     前 8 条 text-shadow 是 0 模糊、1px 八向偏移——叠起来就是一圈**不透明**的实色描边，
+     字形边缘拿到的底色因此恒等于 --hero-halo，与 --hero-ink 的对比度可以断言
+     （tokens.test.ts 守着），而不是又一处"浏览器合成出来、令牌系统看不见"的颜色。
+     最后一条 14px 模糊只负责柔化外缘，让它像光晕而不是贴纸，不承担对比度职责。
+
+     为什么不回到整块遮罩：描边贴着字形走，在浅色平涂底图上不会糊出一块方块——
+     那正是中央椭圆被拿掉的原因。 */
+  .hero-type {
+    margin: 0;
+    /* 句子长短不一，固定高度，避免换句时把整块文字顶来顶去。
+       1.8em 只够一行——窄屏另有一条两行的规则，见下方媒体查询。 */
+    min-height: 1.8em;
+    font-size: clamp(1.25rem, 2.8vw, 2.1rem);
+    /* 字重从 300 提到 500：细笔画压在满是黑描边的画面上，字形会被吃掉。
+       空灵感改由字距和光晕承担，而不是靠把笔画调细或把颜色调淡——
+       后者一淡对比度就掉，而这里已经没有整块遮罩兜底了。 */
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--hero-ink);
+    text-shadow:
+      1px 0 0 var(--hero-halo),
+      -1px 0 0 var(--hero-halo),
+      0 1px 0 var(--hero-halo),
+      0 -1px 0 var(--hero-halo),
+      1px 1px 0 var(--hero-halo),
+      -1px -1px 0 var(--hero-halo),
+      1px -1px 0 var(--hero-halo),
+      -1px 1px 0 var(--hero-halo),
+      0 0 14px var(--hero-halo);
   }
-  .hero-text {
-    min-width: 0;
+
+  .hero-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 3px;
+    vertical-align: -0.16em;
+    background: currentColor;
+    /* 光标是背景色画的，text-shadow 对背景无效，得用 box-shadow 补同一圈描边，
+       否则它会是整行里唯一没有光晕、压在底图上看不清的元素 */
+    box-shadow: 0 0 0 1px var(--hero-halo), 0 0 14px var(--hero-halo);
+    animation: hero-blink 1s steps(2, start) infinite;
   }
-  .hero h1 {
-    margin: 0 0 8px;
-    font-size: clamp(1.7rem, 4vw, 2.5rem);
+
+  .hero-down {
+    position: absolute;
+    left: 50%;
+    bottom: 26px;
+    z-index: 1;
+    display: inline-flex;
+    padding: 6px;
+    border-radius: 999px;
+    color: var(--hero-ink);
+    animation: hero-bob 2.2s var(--ease) infinite;
   }
-  .hero-desc {
-    margin: 0 0 16px;
-    font-size: 1.05rem;
-    color: var(--brand-ink-soft);
-  }
-  .hero-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
-    font-size: 0.9rem;
-    margin-bottom: 16px;
-  }
-  .hero-stats a {
-    color: var(--brand-ink-soft);
-  }
-  .hero-stats a:hover {
-    color: var(--brand-ink);
+  .hero-down:hover {
     text-decoration: none;
   }
-  .hero-stats strong {
-    font-size: 1.15rem;
+
+  @keyframes hero-blink {
+    50% {
+      opacity: 0;
+    }
   }
-  .hero-social {
-    display: flex;
-    gap: 12px;
+
+  /* 用 translate 而非 transform 做水平居中 + 上下浮动：
+     和 motion.css 里那条注释同源——transform 是高优先级合成属性，
+     这里两者都归到 translate 一个属性上，写法也更直白。 */
+  @keyframes hero-bob {
+    0%,
+    100% {
+      translate: -50% 0;
+    }
+    50% {
+      translate: -50% 7px;
+    }
   }
-  .hero-social a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(11, 27, 43, 0.08);
-    color: var(--brand-ink);
-    transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
-  }
-  .hero-social a:hover {
-    background: rgba(11, 27, 43, 0.16);
-    transform: translateY(-2px);
+  .hero-down {
+    translate: -50% 0;
   }
 
   @media (max-width: 640px) {
+    /* 不撑满整屏：底部露出一线内容，暗示「下面还有东西」 */
     .hero {
-      min-height: 240px;
+      height: 88vh;
+      height: 88svh;
     }
-    .hero-inner {
-      padding: 28px 22px;
-      gap: 16px;
+    /* 窄屏放不下一行：字号变大又拉了字距，中文那两句必然折到第二行。
+       这里直接按两行预留高度，折行就不会在打字过程中把整块文字顶动。
+       只有一行时底部多出的空白由 .hero-body 的居中对齐吸收，几乎看不出来。
+       注意 em 是相对 font-size 的，字号改了这里不用跟着算。 */
+    .hero-type {
+      min-height: 3.6em;
+      /* 字距在窄屏上会明显吃掉可用宽度，收一档 */
+      letter-spacing: 0.08em;
     }
-    .hero-avatar {
-      width: 64px;
-      height: 64px;
-    }
+    /* 中央椭圆去掉后，窄屏的遮罩和桌面完全一致，不再需要单独一套 */
   }
 </style>
+
+<script>
+  // 打字机。首句已由服务端渲染，这里只负责「删掉再打下一句」的循环。
+  const el = document.querySelector<HTMLElement>('.hero-type-text');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // 关动效时直接不启动：静态停在首句即可，不做任何 DOM 变更
+  if (el && !reduced) {
+    const lines: string[] = JSON.parse(el.dataset.taglines || '[]');
+    // 只有一句就没有可循环的对象，留着静态显示
+    if (lines.length > 1) {
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      (async () => {
+        let i = 0;
+        // 首句让它先停一会儿再删，否则一进页面文字就开始消失，像是加载失败
+        await sleep(2200);
+        while (true) {
+          const cur = lines[i];
+          for (let n = cur.length; n >= 0; n--) {
+            el.textContent = cur.slice(0, n);
+            await sleep(38);
+          }
+          i = (i + 1) % lines.length;
+          const next = lines[i];
+          for (let n = 1; n <= next.length; n++) {
+            el.textContent = next.slice(0, n);
+            await sleep(88);
+          }
+          await sleep(2200);
+        }
+      })();
+    }
+  }
+</script>
