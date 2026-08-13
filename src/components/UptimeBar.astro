@@ -1,16 +1,20 @@
 ---
 import { SITE_START } from '../consts';
-import { uptimeSince } from '../lib/home';
+import { formatUptime } from '../lib/home';
 
-// 服务端先算一个初始值，避免首屏空白；客户端每分钟刷新
-const initial = uptimeSince(SITE_START, new Date());
+// 服务端先算一个初始值，避免首屏空白。
+// 注意这是**构建时**的值，静态站点部署后就冻住了，真正的数字由下面的脚本
+// 在加载后立刻纠正——所以这里只求「不空」，不求准。
+const initial = formatUptime(SITE_START, new Date());
 ---
 
 <p class="uptime glass" data-start={SITE_START}>
   <span class="dot" aria-hidden="true"></span>
   本站已运行
-  <strong data-uptime-days>{initial.days}</strong> 天
-  <strong data-uptime-hours>{initial.hours}</strong> 小时
+  <strong data-uptime="days">{initial.days}</strong> 天
+  <strong data-uptime="hours">{initial.hours}</strong> 时
+  <strong data-uptime="minutes">{initial.minutes}</strong> 分
+  <strong data-uptime="seconds">{initial.seconds}</strong> 秒
 </p>
 
 <style>
@@ -39,21 +43,29 @@ const initial = uptimeSince(SITE_START, new Date());
   }
 </style>
 
-<script is:inline>
-  (function () {
-    const el = document.querySelector('[data-start]');
-    if (!el) return;
-    const start = new Date(el.dataset.start).getTime();
-    const dEl = el.querySelector('[data-uptime-days]');
-    const hEl = el.querySelector('[data-uptime-hours]');
-    function tick() {
-      const ms = Date.now() - start;
-      if (!isFinite(ms) || ms <= 0) return;
-      const totalHours = Math.floor(ms / 3600000);
-      dEl.textContent = String(Math.floor(totalHours / 24));
-      hEl.textContent = String(totalHours % 24);
-    }
+<script>
+  // 用打包脚本而不是 is:inline，是为了能 import formatUptime——
+  // 服务端渲染初值和客户端每秒刷新走的必须是同一份计算逻辑。
+  // 之前 inline 版本在这里手抄了一遍取模运算，加上分和秒之后这份重复只会更贵。
+  import { formatUptime } from '../lib/home';
+
+  const el = document.querySelector<HTMLElement>('[data-start]');
+  const start = el?.dataset.start;
+
+  if (el && start) {
+    const fields = ['days', 'hours', 'minutes', 'seconds'] as const;
+    const nodes = fields.map(
+      (f) => [f, el.querySelector<HTMLElement>(`[data-uptime="${f}"]`)] as const
+    );
+
+    const tick = () => {
+      const v = formatUptime(start, new Date());
+      for (const [f, node] of nodes) if (node) node.textContent = v[f];
+    };
+
     tick();
-    setInterval(tick, 60000);
-  })();
+    // 每次都拿当前时间重算，而不是累加计数器：
+    // 后台标签页的定时器会被浏览器降频，累加会越走越慢，重算则自动对齐。
+    setInterval(tick, 1000);
+  }
 </script>
