@@ -18,3 +18,7 @@ npm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+
+# Claude Code：launch.json 是项目共享的开发服务器配置，要进版本库；
+# settings.local.json 是本机个人设置，不进。
+.claude/settings.local.json
