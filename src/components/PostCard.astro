@@ -11,23 +11,20 @@ interface Props {
 }
 const { post, index = 0, variant = 'compact' } = Astro.props;
 const { title, description, pubDate, tags, category, cover, pinned } = post.data;
-
-// 无封面时用标题算一个色相做渐变兜底。
-// 刻意压在 190–215 的天蓝区间内，与主色同族，避免随机色相跟天空蓝打架。
-const hash = [...title].reduce((acc, ch) => (acc * 31 + ch.codePointAt(0)!) % 997, 7);
-const hue = 190 + (hash % 26);
-// 兜底块上叠一个分类首字水印。用展开取字符，避免中文/emoji 被截断成半个码位。
-const watermark = [...category][0] ?? '·';
 ---
 
-<article class:list={['card', 'post-card', `is-${variant}`]} style={`--i:${index}; --cover-hue:${hue};`}>
-  <a class="cover" href={`/blog/${post.id}/`} aria-hidden="true" tabindex="-1">
-    {cover ? (
+<!-- 没有 cover 就整块不渲染，卡片退成单列、正文占满宽度。
+     以前这里有个「标题哈希算色相 + 分类首字水印」的渐变兜底块，已移除：
+     绝大多数文章都不配图，那块占掉 200px 却不提供任何信息。 -->
+<article
+  class:list={['card', 'post-card', `is-${variant}`, cover && 'has-cover']}
+  style={`--i:${index};`}
+>
+  {cover && (
+    <a class="cover" href={`/blog/${post.id}/`} aria-hidden="true" tabindex="-1">
       <img src={cover} alt="" loading="lazy" />
-    ) : (
-      <span class="cover-fallback" aria-hidden="true">{watermark}</span>
-    )}
-  </a>
+    </a>
+  )}
   <div class="body">
     <div class="head">
       {pinned && <span class="pinned">置顶</span>}
@@ -47,7 +44,8 @@ const watermark = [...category][0] ?? '·';
 <style>
   .post-card {
     display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
+    /* 默认单列：没有封面时正文占满整张卡 */
+    grid-template-columns: minmax(0, 1fr);
     overflow: hidden;
     transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease),
       box-shadow var(--dur) var(--ease);
@@ -74,10 +72,18 @@ const watermark = [...category][0] ?? '·';
     box-shadow: var(--shadow-glass);
   }
 
+  /* 有封面才切成两列。写成 .post-card.has-cover 而不是单独一个 .has-cover，
+     是因为下面 720px 的媒体查询要把它压回单列——那条也必须带上同样的两个类，
+     否则单类选择器压不过这里的双类。 */
+  .post-card.has-cover {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+
   .cover {
     display: block;
     position: relative;
     min-height: 150px;
+    /* 图加载完成前的占位底色 */
     background: var(--bg-soft);
   }
   .cover img {
@@ -86,25 +92,6 @@ const watermark = [...category][0] ?? '·';
     width: 100%;
     height: 100%;
     object-fit: cover;
-  }
-  /* 无封面兜底：天蓝区间渐变 + 网格纹理 + 分类首字水印 */
-  .cover-fallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.6rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.5);
-    user-select: none;
-    background:
-      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 12px),
-      linear-gradient(
-        135deg,
-        hsl(var(--cover-hue) 85% 62%),
-        hsl(calc(var(--cover-hue) + 14) 70% 42%)
-      );
   }
 
   .body {
@@ -165,9 +152,6 @@ const watermark = [...category][0] ?? '·';
     aspect-ratio: 16 / 9;
     min-height: 0;
   }
-  .is-feature .cover-fallback {
-    font-size: 4rem;
-  }
   .is-feature .body {
     padding: 22px 24px 24px;
   }
@@ -194,7 +178,9 @@ const watermark = [...category][0] ?? '·';
   }
 
   @media (max-width: 720px) {
-    .post-card {
+    /* 必须写全 .post-card.has-cover：媒体查询不加特异性，
+       只写 .post-card 会被上面那条双类选择器压住，窄屏仍是两列。 */
+    .post-card.has-cover {
       grid-template-columns: minmax(0, 1fr);
     }
     .cover {

@@ -12,7 +12,8 @@ const blog = defineCollection({
     tags: z.array(z.string()).default([]),
     // 分类：一篇文章只属于一个分类，缺省归入「未分类」
     category: z.string().default('未分类'),
-    // 封面图可选。缺省时列表卡片用 CSS 渐变兜底，不强制每篇配图。
+    // 封面图可选。不填时列表卡片不渲染封面区，正文占满整张卡——
+    // 不做占位兜底，免得没配图的文章白占一块 200px 却不给任何信息。
     cover: z.string().optional(),
     // 置顶：列表页排在最前
     pinned: z.boolean().default(false),
