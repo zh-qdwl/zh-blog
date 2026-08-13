@@ -4,7 +4,9 @@ import { getPublishedPosts } from '../../lib/posts';
 // 服务端先固定显示前 3 条（无 JS 时的兜底效果），其余 hidden。
 // 客户端加载后再从全部候选里随机洗牌，重新挑 3 条展示——
 // 这样无 JS 也有内容，有 JS 则每次访问都不同。
-const posts = await getPublishedPosts();
+// 候选池上限 12：随机 3 条已经足够「每次访问都不同」，
+// 若不设上限，文章一多，服务端就要把成百上千条 hidden <li> 塞进 HTML。
+const posts = (await getPublishedPosts()).slice(0, 12);
 ---
 
 {posts.length > 0 && (

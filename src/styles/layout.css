@@ -68,7 +68,7 @@ main {
   text-decoration: none;
   color: var(--link);
 }
-/* 品牌名前的金色方块 */
+/* 品牌名前的天蓝方块 */
 .nav-brand::before {
   content: '';
   width: 20px;

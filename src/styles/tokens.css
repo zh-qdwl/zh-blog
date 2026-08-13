@@ -5,9 +5,13 @@
      其上文字必须用 --brand-ink。文字/链接用 --link。
      这条约束由 tokens.test.ts 的对比度不变量测试守着。 */
   --brand: #38bdf8;
-  --brand-strong: #0284c7;
+  --brand-strong: #0ea5e9;
   --brand-ink: #0b1b2b;
   --brand-soft: rgba(56, 189, 248, 0.16);
+  /* Hero 上的次要文字。不用 opacity 衰减 --brand-ink——
+     opacity 后的实际前景色是合成出来的，令牌系统与对比度测试都看不见它，
+     Hero 的链接就是这样悄悄掉到 3.34:1 的。这里用不透明值，测试才能守住。 */
+  --brand-ink-soft: #08131f;
 
   /* 链接色：亮色用深天蓝（对白底 5.93:1，过 WCAG AA）。
      注意 sky-600 #0284c7 只有 4.1:1，不达标，所以没选它。 */
@@ -53,6 +57,7 @@
   /* 暗色下亮天蓝对冷暗底 8.74:1，可以直接当链接色 */
   --link: #38bdf8;
   --brand-soft: rgba(56, 189, 248, 0.14);
+  --brand-ink-soft: #08131f;
 
   --bg: #0b1220;
   --bg-soft: #131c2e;

@@ -59,8 +59,8 @@ const stats = await getStats();
     inset: 0;
     pointer-events: none;
     background-image:
-      repeating-linear-gradient(0deg, rgba(17, 24, 39, 0.05) 0 1px, transparent 1px 32px),
-      repeating-linear-gradient(90deg, rgba(17, 24, 39, 0.05) 0 1px, transparent 1px 32px);
+      repeating-linear-gradient(0deg, rgba(11, 27, 43, 0.05) 0 1px, transparent 1px 32px),
+      repeating-linear-gradient(90deg, rgba(11, 27, 43, 0.05) 0 1px, transparent 1px 32px);
   }
   .hero-inner {
     position: relative;
@@ -75,7 +75,7 @@ const stats = await getStats();
     height: 88px;
     border-radius: 50%;
     border: 3px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 16px rgba(17, 24, 39, 0.18);
+    box-shadow: 0 4px 16px rgba(11, 27, 43, 0.18);
     flex-shrink: 0;
   }
   .hero-text {
@@ -88,7 +88,7 @@ const stats = await getStats();
   .hero-desc {
     margin: 0 0 16px;
     font-size: 1.05rem;
-    opacity: 0.85;
+    color: var(--brand-ink-soft);
   }
   .hero-stats {
     display: flex;
@@ -98,11 +98,10 @@ const stats = await getStats();
     margin-bottom: 16px;
   }
   .hero-stats a {
-    color: var(--brand-ink);
-    opacity: 0.8;
+    color: var(--brand-ink-soft);
   }
   .hero-stats a:hover {
-    opacity: 1;
+    color: var(--brand-ink);
     text-decoration: none;
   }
   .hero-stats strong {

@@ -69,10 +69,13 @@ describe('composite', () => {
     expect(out).toEqual({ r: 128, g: 128, b: 128, a: 1 });
   });
 
-  it('合成结果可直接用于对比度计算', () => {
-    // 磨砂卡：62% 白叠在白底上，等效仍是白
-    const glass = parseColor('rgba(255, 255, 255, 0.62)');
-    const eff = composite(glass, parseColor('#ffffff'));
-    expect(contrastRatio('#1f2328', eff)).toBeCloseTo(contrastRatio('#1f2328', '#ffffff'), 2);
+  it('合成结果可直接用于对比度计算（暗色磨砂卡实例）', () => {
+    // 暗色磨砂卡：rgba(17, 26, 43, 0.58) 叠在暗色页面底 #0b1220 上，
+    // 等效底色约为 #0e1726；--text-soft 在其上实测 6.85:1，过 AA
+    const glass = parseColor('rgba(17, 26, 43, 0.58)');
+    const eff = composite(glass, parseColor('#0b1220'));
+    const ratio = contrastRatio('#93a1b5', eff);
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+    expect(ratio).toBeCloseTo(6.85, 1);
   });
 });

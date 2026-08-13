@@ -16,12 +16,14 @@ npm test         # 运行单元测试（纯数据层 lib/、样式变量 tokens.
 
 ```
 src/
-├── consts.ts          # 站点标题、导航、社交链接（先改这里）
+├── consts.ts          # 站点标题、导航、社交链接（先改这里，含 SITE_START 建站日期、
+                        # AUTHOR_ROLE 身份描述，以及 gitee/juejin/csdn 等可选社交字段）
 ├── content/blog/      # 所有文章（Markdown），新增文章就放这里
 ├── content.config.ts  # 文章字段定义
 ├── components/        # 页头、页脚、文章卡片等组件
 ├── layouts/            # 页面骨架
-├── lib/                # 纯数据层：读取/排序/分组文章，供页面和搜索索引复用
+├── lib/                # 数据层：读取/排序/分组文章供页面和搜索索引复用，
+                        # 也含 contrast.ts 这类配色对比度计算的纯函数
 ├── pages/              # 路由页面，见下方「页面路由」
 └── styles/             # tokens（配色变量）/ base（重置与排版）/ layout（网格与断点）
                         # / motion（入场动效），global.css 只是汇总引入以上四个文件

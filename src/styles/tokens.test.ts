@@ -66,6 +66,10 @@ describe('配色对比度不变量', () => {
     ['--link', '--card'],
     ['--link', '--bg-soft'],
     ['--brand-ink', '--brand'],
+    ['--brand-ink', '--brand-strong'],
+    ['--brand-ink-soft', '--brand'],
+    ['--brand-ink-soft', '--brand-strong'],
+    ['--text', '--bg-soft'],
   ];
 
   for (const [themeName, tokens] of themes) {
@@ -88,6 +92,18 @@ describe('配色对比度不变量', () => {
       for (const fg of ['--text', '--text-soft', '--link']) {
         const ratio = contrastRatio(tokens[fg], effective);
         expect(ratio, `${themeName} ${fg} 在磨砂卡上 = ${ratio}:1`).toBeGreaterThanOrEqual(AA);
+      }
+    }
+  });
+
+  it('--brand-soft 叠在 --card 上的等效色仍满足对比度（.tag / 数字角标 / widget li a:hover / a[aria-current] 的真实场景）', () => {
+    for (const [themeName, tokens] of themes) {
+      const brandSoft = tokens['--brand-soft'];
+      expect(brandSoft, `${themeName}缺少 --brand-soft`).toBeTruthy();
+      const effective = composite(parseColor(brandSoft), parseColor(tokens['--card']));
+      for (const fg of ['--link', '--text']) {
+        const ratio = contrastRatio(tokens[fg], effective);
+        expect(ratio, `${themeName} ${fg} 在 --brand-soft 合成底色上 = ${ratio}:1`).toBeGreaterThanOrEqual(AA);
       }
     }
   });
