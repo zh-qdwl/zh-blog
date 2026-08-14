@@ -1,5 +1,6 @@
 ---
 import ProfileCard from './widgets/ProfileCard.astro';
+import MiniProgramCard from './widgets/MiniProgramCard.astro';
 import CategoryList from './widgets/CategoryList.astro';
 import TagCloud from './widgets/TagCloud.astro';
 import FeaturedPosts from './widgets/FeaturedPosts.astro';
@@ -8,6 +9,8 @@ import RandomPosts from './widgets/RandomPosts.astro';
 
 <aside class="sidebar">
   <ProfileCard />
+  <!-- 紧跟头像卡：和「我是谁」同属一组，也是真能被看到的位置 -->
+  <MiniProgramCard />
   <CategoryList />
   <TagCloud />
   <FeaturedPosts />

@@ -99,6 +99,18 @@ export const SOCIAL = {
   csdn: '',
 };
 
+// 侧栏「我的小程序」入口。name 留空则整个 widget 不渲染。
+//
+// 刻意只放一句话 + 一个指向介绍文章的链接，**不放小程序码**：
+// 码只在那篇文章里维护一处，换码时不用改两个地方；侧栏也不至于因为多出一张
+// 二维码而变成广告位——它旁边还有 5 张内容卡片。
+export const MINI_PROGRAM = {
+  name: '昊玉工具箱',
+  tagline: '六个高频小工具，打开即用、用完带走',
+  /** 指向站内介绍文章，不是小程序本身（Web 页面无法直接唤起小程序） */
+  href: '/blog/pocket-tools/',
+};
+
 // 评论系统。
 // provider = 'none'  → 文章底部和留言页渲染静态「交流」区块（当前）
 // provider = 'giscus' → 接 GitHub Discussions，需先把仓库设为 public、

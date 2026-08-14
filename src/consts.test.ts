@@ -7,6 +7,7 @@ import {
   HERO_FOCUS,
   HERO_TONE,
   HERO_TAGLINES,
+  MINI_PROGRAM,
   NAV_LINKS,
 } from './consts';
 import { NAV_ICONS } from './lib/nav-icons';
@@ -49,6 +50,21 @@ describe('作者信息', () => {
     // AUTHOR 同时出现在侧栏头像卡、页脚版权、关于页正文，空值会在三处留下空白
     expect(AUTHOR.trim()).not.toBe('');
     expect(AUTHOR_ROLE.trim()).not.toBe('');
+  });
+});
+
+describe('侧栏小程序入口', () => {
+  it('href 指向站内文章，而不是外链或小程序协议', () => {
+    // 网页无法直接唤起小程序，这个链接必须落到站内的介绍文章上；
+    // 写成 weixin:// 之类的协议在浏览器里只会是一个点不开的死链。
+    expect(MINI_PROGRAM.href.startsWith('/')).toBe(true);
+  });
+
+  it('name 与 tagline 要么都填，要么靠 name 留空整体隐藏', () => {
+    // widget 用 name 做显隐开关；只填 name 不填 tagline 会渲染出半张空卡
+    if (MINI_PROGRAM.name.trim()) {
+      expect(MINI_PROGRAM.tagline.trim(), 'name 填了就必须有 tagline').not.toBe('');
+    }
   });
 });
 

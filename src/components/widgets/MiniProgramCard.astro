@@ -1,0 +1,74 @@
+---
+import { MINI_PROGRAM } from '../../consts';
+---
+
+{MINI_PROGRAM.name && (
+  <div class="card widget widget-miniapp">
+    <p class="widget-title">我的小程序</p>
+    <a class="entry" href={MINI_PROGRAM.href}>
+      <span class="icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"></rect><rect x="14" y="3" width="7" height="7" rx="2"></rect><rect x="3" y="14" width="7" height="7" rx="2"></rect><rect x="14" y="14" width="7" height="7" rx="2"></rect></svg>
+      </span>
+      <span class="text">
+        <strong>{MINI_PROGRAM.name}</strong>
+        <span class="tagline">{MINI_PROGRAM.tagline}</span>
+      </span>
+      <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+    </a>
+  </div>
+)}
+
+<style>
+  .widget-miniapp {
+    padding: 20px;
+  }
+  .entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    margin: 0 -10px -10px;
+    border-radius: 10px;
+    color: var(--text);
+    transition: background var(--dur) var(--ease);
+  }
+  .entry:hover {
+    background: var(--bg-soft);
+    text-decoration: none;
+  }
+  .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--brand-soft);
+    /* --brand 对白底只有 2.14:1，不能当前景色；--link 是过 AA 的那一档 */
+    color: var(--link);
+  }
+  .text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .text strong {
+    font-size: 0.94rem;
+  }
+  .tagline {
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+  .arrow {
+    flex-shrink: 0;
+    margin-left: auto;
+    color: var(--text-soft);
+    transition: translate var(--dur) var(--ease);
+  }
+  .entry:hover .arrow {
+    translate: 3px 0;
+  }
+</style>
