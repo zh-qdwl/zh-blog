@@ -1335,7 +1335,9 @@ CSS 也放到 load() 里注入，懒加载时才不会白拉一个请求。"
   color: var(--text);
 }
 
-/* 输入框：Twikoo 用的是 element-plus，类名带 el- 前缀 */
+/* 输入框：Twikoo 用的是 element-ui（Vue 2 那一代），类名带 el- 前缀。
+   别写成 element-plus——那是 Vue 3 的后继项目，Twikoo 并没有用它，
+   两者部分类名不同，认错了会照着错的文档去找选择器。 */
 .twikoo .el-textarea__inner,
 .twikoo .el-input__inner {
   background: var(--card) !important;
