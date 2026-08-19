@@ -1,14 +1,23 @@
 ---
 import { COMMENTS } from '../consts';
+import { normalizeCommentPath } from '../lib/comments';
 import CommentsFallback from './comments/CommentsFallback.astro';
 import CommentsGiscus from './comments/CommentsGiscus.astro';
+import CommentsTwikoo from './comments/CommentsTwikoo.astro';
 
 interface Props {
   /** 懒加载：滚到附近才拉三方脚本。留言页应传 false */
   lazy?: boolean;
 }
 const { lazy = COMMENTS.lazyOnPosts } = Astro.props;
+
+// 评论线的路径键。用构建期的规范路径，不让 widget 去读 location.pathname——
+// 理由见 src/lib/comments.ts 的注释。
+const path = normalizeCommentPath(Astro.url.pathname);
 ---
 
 {COMMENTS.provider === 'giscus' && <CommentsGiscus config={COMMENTS.giscus} lazy={lazy} />}
+{COMMENTS.provider === 'twikoo' && (
+  <CommentsTwikoo config={COMMENTS.twikoo} path={path} lazy={lazy} />
+)}
 {COMMENTS.provider === 'none' && <CommentsFallback />}
