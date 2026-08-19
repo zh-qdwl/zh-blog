@@ -4,6 +4,7 @@ import { normalizeCommentPath } from '../lib/comments';
 import CommentsFallback from './comments/CommentsFallback.astro';
 import CommentsGiscus from './comments/CommentsGiscus.astro';
 import CommentsTwikoo from './comments/CommentsTwikoo.astro';
+import CommentsWaline from './comments/CommentsWaline.astro';
 
 interface Props {
   /** 懒加载：滚到附近才拉三方脚本。留言页应传 false */
@@ -19,5 +20,8 @@ const path = normalizeCommentPath(Astro.url.pathname);
 {COMMENTS.provider === 'giscus' && <CommentsGiscus config={COMMENTS.giscus} lazy={lazy} />}
 {COMMENTS.provider === 'twikoo' && (
   <CommentsTwikoo config={COMMENTS.twikoo} path={path} lazy={lazy} />
+)}
+{COMMENTS.provider === 'waline' && (
+  <CommentsWaline config={COMMENTS.waline} path={path} lazy={lazy} />
 )}
 {COMMENTS.provider === 'none' && <CommentsFallback />}
