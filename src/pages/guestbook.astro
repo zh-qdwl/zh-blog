@@ -7,9 +7,13 @@ import Comments from '../components/Comments.astro';
   <article>
     <header class="article-header">
       <h1>留言</h1>
-      <p class="lead">路过留个脚印，或者聊聊你在折腾什么。</p>
+      <p class="lead">路过留个脚印，或者聊聊你在折腾什么。看到都会回。</p>
+      <p class="notice">
+        邮箱只用于回复通知，不会公开显示，也不会出现在页面源码里。正文支持 Markdown。
+      </p>
     </header>
-    <Comments />
+    <!-- 留言区就是这一页的主体内容，懒加载没有意义，显式关掉 -->
+    <Comments lazy={false} />
   </article>
 </BaseLayout>
 
@@ -22,7 +26,14 @@ import Comments from '../components/Comments.astro';
     margin: 0 0 8px;
   }
   .lead {
+    margin: 0 0 10px;
+    color: var(--text-soft);
+  }
+  /* 留言须知：比 lead 再轻一档，是提示而不是正文 */
+  .notice {
     margin: 0;
     color: var(--text-soft);
+    font-size: 0.85rem;
+    line-height: 1.7;
   }
 </style>
