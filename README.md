@@ -22,12 +22,14 @@ src/
 ├── content/blog/      # 所有文章（Markdown），新增文章就放这里
 ├── content.config.ts  # 文章字段定义
 ├── components/        # 页头、页脚、文章卡片等组件
+│   └── comments/      # 评论区：四档 provider 各一个组件 + 共用的联系方式链接
 ├── layouts/            # 页面骨架
 ├── lib/                # 数据层：读取/排序/分组文章供页面和搜索索引复用，
                         # 也含 contrast.ts 这类配色对比度计算的纯函数
 ├── pages/              # 路由页面，见下方「页面路由」
 └── styles/             # tokens（配色变量）/ base（重置与排版）/ layout（网格与断点）
-                        # / motion（入场动效），global.css 只是汇总引入以上四个文件
+                        # / motion（入场动效）/ comments（三方评论 widget 的外观映射）
+                        # global.css 只是汇总引入以上五个文件
 public/               # 静态资源（favicon、首页整屏 Hero 的底图等）
 astro.config.mjs      # 站点地址 site、集成配置
 ```
@@ -38,7 +40,7 @@ astro.config.mjs      # 站点地址 site、集成配置
 - `/tags`、`/tags/[tag]` —— 标签总览、单个标签下的文章
 - `/categories`、`/categories/[category]` —— 分类总览、单个分类下的文章
 - `/archive` —— 按年份归档
-- `/guestbook` —— 留言
+- `/guestbook` —— 留言（评论系统见下方「打开留言功能」）
 - `/about` —— 关于
 - `/rss.xml`、`/search.json` —— RSS 订阅、站内搜索用的数据接口
 - `/404` —— 404 页
@@ -48,6 +50,23 @@ astro.config.mjs      # 站点地址 site、集成配置
 1. `src/consts.ts` —— 站点标题、你的名字、GitHub / 邮箱链接
 2. `astro.config.mjs` —— 把 `site` 改成你的正式网址
 3. `src/content/blog/` —— 删掉示例文章，写你自己的
+
+## 打开留言功能
+
+`/guestbook` 与文章底部的评论区共用 `src/consts.ts` 的 `COMMENTS` 配置，四档：
+
+| provider | 说明 |
+|---|---|
+| `'none'`（当前） | 渲染一张「发邮件 / 开 Issue」的静态卡片，不需要任何后端 |
+| `'giscus'` | GitHub Discussions。零后端，但访客必须有 GitHub 账号 |
+| `'twikoo'` | 需自建后端。推荐 Cloudflare Workers + D1，步骤见 `docs/comments-backend.md` |
+| `'waline'` | 需自建后端。作为 Twikoo 换肤不理想时的退路 |
+
+改 `provider` 一行就切换，对应那组配置填上即可——`npm test` 会检查启用的那档
+必填字段没有留空（填一半的话构建不报错，页面上只是一块空白）。
+
+文章页的评论区默认懒加载（滚到附近才拉三方脚本），由 `COMMENTS.lazyOnPosts`
+控制；留言页始终立即加载。
 
 ## 换首页的整屏底图
 
