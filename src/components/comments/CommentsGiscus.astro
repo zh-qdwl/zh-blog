@@ -3,9 +3,14 @@ import NoScriptNotice from './NoScriptNotice.astro';
 
 interface Props {
   config: { repo: string; repoId: string; category: string; categoryId: string };
+  /** 评论线路径键，由 Comments.astro 用 normalizeCommentPath 算出 */
+  path: string;
   lazy: boolean;
 }
-const { config, lazy } = Astro.props;
+const { config, path, lazy } = Astro.props;
+
+// giscus 的 iframe 源站，postMessage 的目标 origin 与来信过滤都用它
+const GISCUS_ORIGIN = 'https://giscus.app';
 ---
 
 <section class="comments" aria-label="评论">
@@ -20,7 +25,9 @@ const { config, lazy } = Astro.props;
     repoId: config.repoId,
     category: config.category,
     categoryId: config.categoryId,
+    path,
     lazy,
+    GISCUS_ORIGIN,
   }}
 >
   (function () {
@@ -38,14 +45,25 @@ const { config, lazy } = Astro.props;
       if (loaded) return;
       loaded = true;
       const s = document.createElement('script');
-      s.src = 'https://giscus.app/client.js';
+      s.src = GISCUS_ORIGIN + '/client.js';
       s.async = true;
       s.crossOrigin = 'anonymous';
       s.setAttribute('data-repo', repo);
       s.setAttribute('data-repo-id', repoId);
       s.setAttribute('data-category', category);
       s.setAttribute('data-category-id', categoryId);
-      s.setAttribute('data-mapping', 'pathname');
+      // 用 specific + term，不用 mapping="pathname"。
+      // client.js 的 pathname 分支是
+      //   c.term = 2 > location.pathname.length ? 'index'
+      //          : location.pathname.substring(1).replace(/\.\w+$/, '')
+      // 也就是拿**访客当时的** location.pathname，只去掉开头的 / 和 .扩展名，
+      // 不归一尾斜杠。于是站内链接进来的 /blog/foo/ 与搜索结果进来的 /blog/foo
+      // 会得到两个不同的 term，同一篇文章的评论被拆成两条互相看不见的 Discussion。
+      // specific 分支是 c.term = b.term，直接吃我们给的值——
+      // 这里给的是构建期算好的规范路径，与访客怎么进来无关，
+      // 和 Twikoo / Waline 用的是同一个键（src/lib/comments.ts）。
+      s.setAttribute('data-mapping', 'specific');
+      s.setAttribute('data-term', path);
       s.setAttribute('data-reactions-enabled', '1');
       s.setAttribute('data-emit-metadata', '0');
       s.setAttribute('data-input-position', 'top');
@@ -57,15 +75,22 @@ const { config, lazy } = Astro.props;
     if (lazy && window.__commentsWhenNear) window.__commentsWhenNear(host, load);
     else load();
 
-    // 把「找 iframe + postMessage」抽出来，下面两个 observer 都要用：
-    // 一个处理切换后的同步，一个处理 iframe 迟到时的补发。
-    // 找不到 iframe 时返回 false，调用方各自决定要不要继续等。
+    /**
+     * 把当前主题 post 给 iframe。
+     * 返回值只表示「消息已经发出去了」——不表示 iframe 里的 giscus 收到了。
+     * 这两件事不是一回事：iframe 刚被插进 DOM 时它的 document 还是 about:blank，
+     * 里面还没有 message 监听器，这时候 post 出去的消息直接被丢掉，
+     * 而这个函数照样会返回 true。所以调用方不能拿它当「补发成功」的判据
+     * （本文件早先的补发逻辑就是这样自欺的：iframe 一插入就 post 一次然后
+     * disconnect，消息其实全丢了，等于没修）。
+     * 真正的就绪判据见下面的 onFrameReady。
+     */
     function syncTheme() {
       const frame = document.querySelector('iframe.giscus-frame');
       if (!frame) return false;
       frame.contentWindow.postMessage(
         { giscus: { setConfig: { theme: currentTheme() } } },
-        'https://giscus.app'
+        GISCUS_ORIGIN
       );
       return true;
     }
@@ -77,15 +102,45 @@ const { config, lazy } = Astro.props;
       attributeFilter: ['data-theme'],
     });
 
-    // giscus 的 client.js 是异步加载的，iframe 要等它跑完才会出现在 host 里，
-    // 这中间有一段真空期。如果访客恰好在这段真空期内点了主题切换，上面那个
-    // observer 会因为这里的 syncTheme() 找不到 iframe 而直接把这次变化丢掉——
-    // iframe 出生时带的是 load() 那一刻塞进 data-theme 属性的旧主题，
-    // 要等访客再点一次才会纠正过来。这里额外盯一下 host 的子树，
-    // iframe 一出现就用「当前」主题补发一次，成功后立刻断开，不常驻轮询。
+    // ===== iframe 迟到期间的主题补发 =====
+    // client.js 是异步加载的，iframe 要等它跑完才会出现，之后还要等 iframe 自己的
+    // 文档加载完。这中间访客要是点了主题切换，上面那个 observer 的 syncTheme()
+    // 要么找不到 iframe、要么 post 给一个还没有监听器的 about:blank，两种都丢。
+    // iframe 出生时带的是 load() 那一刻写进 data-theme 的旧主题，
+    // 不补发就要等访客再点一次才纠正。
+    //
+    // 判据用「iframe 真的 load 完」，不是「iframe 被插进 DOM」：
+    // MutationObserver 的回调是本次任务末尾的微任务，那时 iframe 还是 about:blank。
+    let caughtUp = false;
+
+    // 通道一（主路）：iframe 一出现就给它绑 load，绑完就不用再盯 host 了。
+    // 声明放在两个 handler 之前，免得 handler 先跑到时撞上 const 的 TDZ。
     const arrivalObserver = new MutationObserver(function () {
-      if (syncTheme()) arrivalObserver.disconnect();
+      const frame = document.querySelector('iframe.giscus-frame');
+      if (!frame) return;
+      arrivalObserver.disconnect();
+      frame.addEventListener('load', onFrameReady, { once: true });
     });
+
+    function onFrameReady() {
+      if (caughtUp) return;
+      caughtUp = true;
+      // 用完即走：两条通道都撤掉，不留常驻监听、也不轮询
+      arrivalObserver.disconnect();
+      window.removeEventListener('message', onGiscusMessage);
+      syncTheme();
+    }
+
+    // 通道二（兜底）：giscus app 自己发来的第一条消息。收到就说明它的
+    // message 监听器已经就位（client.js 里父页面这一侧也是靠 message 收
+    // resizeHeight / error 的）。万一 load 事件在我们绑上之前就过去了，靠这条兜住。
+    function onGiscusMessage(e) {
+      if (e.origin !== GISCUS_ORIGIN) return;
+      if (!e.data || typeof e.data !== 'object' || !e.data.giscus) return;
+      onFrameReady();
+    }
+
+    window.addEventListener('message', onGiscusMessage);
     arrivalObserver.observe(host, { childList: true, subtree: true });
   })();
 </script>

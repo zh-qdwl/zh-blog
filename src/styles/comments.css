@@ -25,7 +25,14 @@
 }
 
 /* 三方 widget 的挂载容器。给个最小高度，懒加载注入 widget 时才不会把下方内容
-   猛地顶一下（CLS）。190px 约等于一个空表单的高度，宁可略矮也不要留一大片空白。 */
+   猛地顶一下（CLS）。190px 约等于一个空表单的高度，宁可略矮也不要留一大片空白。
+
+   注意这个占位只在「widget 迟早会来」时才成立。禁用 JavaScript 时 widget 永远
+   不会注入，190px 就是一块凭空的空白，还压在 <noscript> 那句提示上方——
+   所以 NoScriptNotice.astro 的 <noscript> 里带了一条把它撤掉的规则。
+   撤销规则放在那里而不是这里：CSS 没有「脚本被禁用」的选择器可用
+   （@media (scripting: none) 是 MQ Level 5，老浏览器还认不出来），
+   <noscript> 是唯一各处都必然生效的开关。 */
 .comments-mount {
   min-height: 190px;
 }
@@ -34,13 +41,16 @@
    目标是让接进来的评论区看着像本站的一部分，而不是一块补丁。
    两个 provider 的处境完全不同，分两段处理。
 
-   ⚠️ Twikoo 那一段（本文件末尾）在写下时后端尚未部署，widget 渲染不出完整 DOM，
-      因此那些选择器是照官方文档与社区教程盲写的，可能对不上、也可能有遗漏。
-      Worker 部署完成后必须回来对着真实 DOM 走一轮目视调整。 */
+   ⚠️ Twikoo 那一段（本文件末尾）的**像素级观感**尚未在真实 DOM 上看过：
+      后端未部署，widget 渲染不出完整界面，间距/圆角/密度只能等 Worker 跑起来
+      再目视调整。但**类名是否存在这件事不用等**——已经对着钉死的
+      twikoo@1.7.19 产物（含它内嵌的 element-ui 样式与 Vue render 函数里的
+      staticClass）逐个核过，见每条规则上方的注释。 */
 
 /* ===== Waline =====
-   它暴露官方 CSS 变量，映射一遍就完事。变量名逐个核对过官方 style 参考页——
-   写错不会报错，只会静默不生效。
+   它暴露官方 CSS 变量，映射一遍就完事。变量名与**角色**都逐个核对过 v3 的
+   waline.css 本体（不是文档）——写错不会报错，只会静默不生效，
+   而角色认错（把前景色当主题底色）更糟：不报错，只是文字读不出来。
 
    刻意不启用 Waline 的 dark 选项：那会注入
    html[data-theme="dark"] { --waline-bg-color: #1e1e1e; ... } 一整组硬编码深色值，
@@ -62,8 +72,38 @@
 :root,
 #waline-mount {
   --waline-font-size: 0.95rem;
-  --waline-theme-color: var(--brand-strong);
-  --waline-active-color: var(--brand);
+
+  /* 下面三个变量在 waline.css 里是**前景色**角色，不是「主题底色」。核对结果：
+       --waline-theme-color  → 13 处 color:（[data-waline] a、.wl-btn:hover、
+                               .wl-login-nick、.wl-action:hover、.wl-card 的
+                               delete/like/reply/edit/rss:hover、.wl-sort li.active、
+                               .wl-reaction-loading / -votes / .active .wl-reaction-text）
+       --waline-active-color → 5 处 color:（[data-waline] a:hover、.wl-action.active、
+                               .wl-card 各操作 .active）
+       --waline-badge-color  → .wl-badge 的 color: 与 border:（.wl-card / .wl-user-list 各一处）
+     所以三个都得按「文字」的红线选色（AA 4.5:1），品牌色一律不合格：
+     --brand-strong 对 --card 亮色只有 2.77:1，--brand 只有 2.14:1
+     （tokens.css 开头那条约束说的就是这件事，用 lib/contrast.ts 量的）。
+
+     统一走本站的链接色 --link：对 --card 亮色 5.93:1、暗色 8.13:1。
+     这和本文件 Twikoo 段的 .twikoo a / .tk-nick-link 是同一个令牌——
+     两段此前对「链接文字该用什么色」给的是两个答案，现在一致了。
+     active 也用 --link 而不是另找一个更亮的色：本站的 hover 约定是
+     「颜色不变、加下划线」（base.css 的 a:hover），换色反而不像本站。 */
+  --waline-theme-color: var(--link);
+  --waline-active-color: var(--link);
+  --waline-badge-color: var(--link);
+
+  /* --waline-white 名字叫 white，实际角色是「压在 theme/active 实底上的文字色」：
+     waline.css 的 .wl-btn.primary { background: var(--waline-theme-color);
+     color: var(--waline-white) }（hover/active 换成 --waline-active-color）。
+     不映射它就保持默认 #fff，暗色下是白字压在亮天蓝底上，读不出来。
+     映射成 --card 等于把这颗按钮做成「反色的链接」：底是 --link、字是页面底色，
+     这一对的对比度恒等于 --link 对 --card，而后者已经被 tokens.test.ts 里
+     ['--link', '--card'] 那条断言守着（亮 5.93:1 / 暗 8.13:1）。
+     不用 --brand-ink：它压在 --link 上亮色只有 2.93:1（同样是量出来的，不是估的）。 */
+  --waline-white: var(--card);
+
   --waline-color: var(--text);
   --waline-bg-color: var(--card);
   --waline-bg-color-light: var(--bg-soft);
@@ -71,34 +111,57 @@
   --waline-border-color: var(--border);
   --waline-info-color: var(--text-soft);
   --waline-info-bg-color: var(--bg-soft);
-  --waline-code-bg-color: var(--code-bg);
+
+  /* 刻意**不**映射 --waline-code-bg-color，让 Waline 自带的深色代码框留着。
+     它在 waline.css 里只有一个消费方 .wl-content pre { background: ... }，
+     而配对的前景色是硬编码的 .wl-content pre code { color: #bbb }——
+     权重 (0,1,2)，我们这张变量表够不到。Waline 的默认底色 #282c34 就是照着
+     #bbb 配的，7.29:1；换成本站浅色的 --code-bg #f6f8fa 之后，
+     #bbb 压浅底只剩 1.80:1，等于把评论里的代码块变成看不见
+     （留言页正文明写着支持 Markdown，无语言标注的 ``` 围栏走的正是这条路径）。
+     浅色页面里嵌一块深色代码框是常见且刻意的设计，也是 Waline 真正测过的那一对，
+     所以这里选择不插手。真要换成本站的 --code-bg，就必须同时覆盖
+     .wl-content pre code 的 color（权重至少 (0,1,2)），只改背景一定掉到 1.80:1。 */
+
   --waline-bq-color: var(--bg-soft);
-  --waline-badge-color: var(--brand-strong);
   --waline-box-shadow: var(--shadow);
 }
 
 /* ===== Twikoo =====
-   ⚠️ 未经真实 DOM 验证，见文件头。
+   ⚠️ 像素级观感未在真实 DOM 上看过（见文件头）；类名存在性已核过钉死的 1.7.19 产物。
    Twikoo 没有官方 CSS 变量、也没有暗色选项，只能覆盖它的类名。
    官方文档自己也推荐用外部 CSS + !important 来盖（因为它的配置项存在数据库里、
    加载有延迟），所以这里的 !important 不是偷懒，是官方姿势。
 
+   posture：本段**每一条声明都带 !important**，一条不漏。理由是 Twikoo 的样式表
+   （连同它内嵌的 element-ui）是运行时注入 <head> 的，排在本站所有样式表之后，
+   同权重时后来者胜——漏一处 !important，那一行就是「现在恰好赢、以后随时会输」。
+   本段此前漏了两处（容器的 color 与 .twikoo a 的 color），现已补齐；
+   新增规则请一并遵守，不要再出现「有的带有的不带」。
+
    范围刻意收窄到「不改就明显不像本站」的几处：容器背景、边框、输入框、按钮、
-   链接色、次要文字。不做整体魔改——覆盖越多，升级时碎得越彻底。 */
+   链接色、评论者名字、次要文字、分隔线。不做整体魔改——覆盖越多，升级时碎得越彻底。
+   每条选择器一律钉在 .twikoo 之下（1.7.19 的根节点就是 <div id="twikoo" class="twikoo">），
+   这样万一类名对不上，规则是哑火而不是漏到页面别处去。 */
 
 /* 容器背景与文字：background 设为 transparent，不让 Twikoo 给自己的容器刷底色，
    把背景交给页面本身——它原本要是没背景，这行就是空操作；要是有（大概率是白色），
    这行就是深色模式下不会糊成一块亮板的关键。color 则让容器内文字跟本站正文令牌走，
-   不用 Twikoo 自带的默认灰。 */
+   不用 Twikoo 自带的默认灰。
+   .tk-comments / .tk-submit 都在 1.7.19 里：前者是 staticClass:"tk-comments"，
+   后者是 staticClass:"tk-submit tk-fade-in"（两个类，选 .tk-submit 命中）。 */
 .twikoo .tk-comments,
 .twikoo .tk-submit {
   background: transparent !important;
-  color: var(--text);
+  color: var(--text) !important;
 }
 
 /* 输入框：Twikoo 用的是 element-ui（Vue 2 那一代），类名带 el- 前缀。
    别写成 element-plus——那是 Vue 3 的后继项目，Twikoo 并没有用它，
-   两者部分类名不同，认错了会照着错的文档去找选择器。 */
+   两者部分类名不同，认错了会照着错的文档去找选择器。
+   两个类名都在 1.7.19 内嵌的 element-ui 样式里，而且 Twikoo 自己就写了
+   `.twikoo .el-input__inner, .twikoo .el-textarea__inner`（同为 0,2,0 权重）
+   来改它们——这正是本段必须带 !important 的实例。 */
 .twikoo .el-textarea__inner,
 .twikoo .el-input__inner {
   background: var(--card) !important;
@@ -114,27 +177,70 @@
   border-color: var(--brand) !important;
 }
 
-/* 发送按钮：本站按钮是圆角胶囊 + 品牌底 + 深色字 */
-.twikoo .tk-submit .tk-row-actions .el-button--primary {
+/* 发送按钮：本站按钮是圆角胶囊 + 品牌底 + 深色字（--brand-ink 对 --brand 8.13:1）。
+   选择器按 1.7.19 的真实产物写，不是照文档猜的：
+     <el-button class="tk-send" type="primary" size="small">
+   渲染成 class="el-button tk-send el-button--primary el-button--small"，
+   父层是 staticClass:"tk-row actions"——**两个类**，不是 tk-row-actions。
+   本文件旧版写的 `.tk-submit .tk-row-actions .el-button--primary` 因此一次也没命中过
+   （产物里 tk-row-actions 只作为 tk-row-actions-start 的前缀出现，没有这个类），
+   按钮一直是 element-ui 的默认蓝 + 4px 圆角，白字压 #409EFF 只有 2.78:1。
+   现在直接钉 .tk-send：它是这颗按钮独有的类，比 .el-button--primary 精确
+   （后者在管理面板、搜索框里也有）。 */
+.twikoo .tk-send {
   background: var(--brand) !important;
   border-color: var(--brand) !important;
   color: var(--brand-ink) !important;
   border-radius: 999px !important;
 }
-
-/* 次要文字：时间、UA 徽章、楼层信息 */
-.twikoo .tk-time,
-.twikoo .tk-extras,
-.twikoo .tk-nick-link {
+/* 禁用态（还没输入内容时 canSend 为假，element-ui 会加 is-disabled，
+   1.7.19 的 el-button render 函数里就是 {"is-disabled": e.buttonDisabled}）。
+   必须单独写一条：上面那条带 !important，不然会把禁用态也刷成可点的样子。
+   颜色走本站的弱化令牌，不用 element-ui 的半透明蓝。 */
+.twikoo .tk-send.is-disabled {
+  background: var(--bg-soft) !important;
+  border-color: var(--border) !important;
   color: var(--text-soft) !important;
 }
 
-/* 链接色统一走本站的 --link */
-.twikoo a {
-  color: var(--link);
+/* 评论者的名字：它是一个指向对方主页的链接（1.7.19 的产物是
+   <a class="tk-nick tk-nick-link" href=... rel="noopener noreferrer nofollow ugc">），
+   不是元信息。Twikoo 给它的全部可点提示就是 .tk-nick-link:hover { color: #409eff }，
+   本文件旧版把它并进「次要文字」那条 color: var(--text-soft) !important，
+   结果是：静止态被压暗、没有下划线，hover 又被 !important 挡住不变色——
+   一个看不出是链接的链接。这里改回本站的链接约定：
+   静止态 --link（对 --card 亮 5.93:1 / 暗 8.13:1），hover 加下划线。 */
+.twikoo .tk-nick-link {
+  color: var(--link) !important;
+  text-decoration: none !important;
+}
+.twikoo .tk-nick-link:hover {
+  text-decoration: underline !important;
 }
 
-/* 分隔线 */
-.twikoo .tk-comment {
-  border-color: var(--border) !important;
+/* 次要文字：时间、UA/归属地徽章。这两个是真的元信息，保持压暗。
+   .tk-time 在 1.7.19 的产物里出现两次（评论卡的 <small> 与管理面板的 <span>），
+   Twikoo 自己没给它写样式；.tk-extras 有一条 color: #999999 的规则，靠 !important 盖掉。 */
+.twikoo .tk-time,
+.twikoo .tk-extras {
+  color: var(--text-soft) !important;
+}
+
+/* 链接色统一走本站的 --link（与上面 .tk-nick-link、以及 Waline 段的
+   --waline-theme-color 同一个令牌）。 */
+.twikoo a {
+  color: var(--link) !important;
+}
+
+/* 评论之间的分隔线。
+   注意不能只写 border-color：1.7.19 的 .tk-comment 只有
+   { margin-top: 1rem; display: flex; flex-direction: row; word-break: break-all }，
+   一条 border 声明都没有，border-style 取初始值 none——
+   本文件旧版只设 border-color，画出来的是「无」。这里显式给出 border-bottom。
+   只钉直接子级：.tk-comment 是递归组件，楼中楼的回复也是 .tk-comment，
+   不限定的话每条回复下面都会多一条线。
+   .tk-comments-container 是 1.7.19 里包住顶层评论列表的那层（staticClass 已核）。 */
+.twikoo .tk-comments-container > .tk-comment {
+  border-bottom: 1px solid var(--border) !important;
+  padding-bottom: 1rem !important;
 }

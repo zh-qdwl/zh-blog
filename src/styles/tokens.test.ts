@@ -204,4 +204,64 @@ describe('配色角色契约', () => {
       ).not.toMatch(invalid);
     }
   });
+
+  /**
+   * 算出「不能当文字色」的令牌集合：对 --card 的对比度在亮暗任一主题下低于 4.5:1 的，
+   * 放到文字位置上就读不出来（--card 是评论区、卡片、正文区的实际底色）。
+   * 刻意算而不是手写一张名单——手写的话，将来新增一个同样过亮的令牌会静默绕过约束。
+   * 非颜色值（阴影、尺寸、字体栈）解析不了，跳过。
+   */
+  function unreadableAsText(): Set<string> {
+    const out = new Set<string>();
+    for (const tokens of [light, dark]) {
+      for (const [name, value] of Object.entries(tokens)) {
+        let ratio: number;
+        try {
+          ratio = contrastRatio(value, tokens['--card']);
+        } catch {
+          continue;
+        }
+        if (ratio < AA) out.add(name);
+      }
+    }
+    return out;
+  }
+
+  it('不得把「不能当文字」的令牌灌进任何以 -color 结尾的自定义属性（三方 widget 换肤的坑）', () => {
+    // 为什么要单独加这一条：上面那条只管 bare `color:`，它的负向前瞻 (?<![a-z-]) 会把
+    // `--waline-active-color: var(--brand)` 整个放过——属性名里 color 前面就是个 `-`。
+    // 而 waline.css 里 --waline-theme-color / --waline-active-color / --waline-badge-color
+    // 全是**前景色**角色（分别驱动 13 / 5 / 2 处 color:），灌进 --brand 就是 2.14:1 的正文，
+    // 而且不报错、页面照样渲染，只是读不出来。所以按「属性名以 -color 结尾」再筛一遍。
+    const unreadable = unreadableAsText();
+    // 守卫自检：万一 tokens.css 的解析坏了，集合会变空，整条约束就成了空头支票
+    expect(unreadable.has('--brand'), '自检：--brand（亮色 2.14:1）应被判为不能当文字').toBe(true);
+    expect(unreadable.has('--brand-strong'), '自检：--brand-strong（亮色 2.77:1）应被判为不能当文字').toBe(true);
+    expect(unreadable.has('--link'), '自检：--link 是本站的文字/链接色，不该被判进来').toBe(false);
+
+    // 例外：属性名自己说明了是背景/边框/阴影角色（bg / background / border / shadow），
+    // 亮色令牌本来就该往那里放。--waline-bq-color 也在例外里：名字看不出角色，
+    // 但对着 v3 的 waline.css 核过——它只驱动 [data-waline] blockquote 的
+    // border-inline-start，是边框色。除此之外一律按前景色对待：
+    // 三方变量表里分不清角色时，宁可误报也不要漏掉一处 2.14:1 的正文。
+    const nonTextRole = /(^|-)(bg|background|border|shadow)(-|$)|^--waline-bq-color$/;
+    const files = collectStyleFiles(SRC_ROOT);
+    expect(files.length, '应能在 src 下找到样式文件').toBeGreaterThan(0);
+    for (const file of files) {
+      const css = readFileSync(file, 'utf-8');
+      for (const m of css.matchAll(/(--[\w-]*-color)\s*:\s*var\((--[\w-]+)\)/g)) {
+        const [, prop, token] = m;
+        if (nonTextRole.test(prop)) continue;
+        const ratios = [light, dark]
+          .map((t) => (t[token] ? contrastRatio(t[token], t['--card']) : NaN))
+          .join(' / ');
+        expect(
+          unreadable.has(token),
+          `${relative(SRC_ROOT, file)} 把 ${token} 灌进了 ${prop}：` +
+            `以 -color 结尾的自定义属性按前景色对待，而 ${token} 对 --card 只有 ${ratios}（亮/暗），` +
+            `低于 ${AA}:1。文字色请用 --link（链接）或 --text / --text-soft（正文）。`
+        ).toBe(false);
+      }
+    }
+  });
 });

@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { normalizeCommentPath, missingCommentFields } from './comments';
 
 describe('normalizeCommentPath', () => {
@@ -81,5 +83,49 @@ describe('missingCommentFields', () => {
   it('配置组整个缺失时报出该档全部必填字段', () => {
     // 手改 consts.ts 时把整个 waline: {} 块删掉，不该抛异常而应报缺失
     expect(missingCommentFields({ provider: 'waline' })).toEqual(['serverURL']);
+  });
+});
+
+describe('归一后的路径键真的接到了每个 provider（扫描组件源码）', () => {
+  // 为什么要靠扫源码：上面那些纯函数断言全绿，也证明不了这个键**被传下去了**。
+  // 交付时 provider='none'，三个 provider 组件在构建产物里根本不出现，
+  // 漏传是完全静默的——构建不报错，只有真启用那一档、并且真有两个访客分别从
+  // 带斜杠 / 不带斜杠的地址进来时才会暴露：评论被拆成两条互相看不见的线。
+  // giscus 就漏过一次（连 Props 里都没有 path，还硬写着 mapping="pathname"），
+  // 所以这里逐个盯住三档。
+  const COMPONENTS = join(import.meta.dirname, '..', 'components');
+  const dispatcher = readFileSync(join(COMPONENTS, 'Comments.astro'), 'utf-8');
+  const PROVIDERS = ['CommentsGiscus', 'CommentsTwikoo', 'CommentsWaline'];
+
+  for (const tag of PROVIDERS) {
+    it(`分发器给 <${tag}> 传了 path={path}`, () => {
+      const m = dispatcher.match(new RegExp(`<${tag}[^>]*>`));
+      expect(m, `Comments.astro 里找不到 <${tag}>`).not.toBeNull();
+      expect(m![0], `<${tag}> 没有把构建期算出的 path 传下去`).toContain('path={path}');
+    });
+
+    it(`${tag} 自己声明了 path 并交给了 define:vars`, () => {
+      const src = readFileSync(join(COMPONENTS, 'comments', `${tag}.astro`), 'utf-8');
+      // Astro 不会因为多传一个未声明的 prop 而报错，只会静默丢掉
+      expect(src, `${tag} 的 Props 里没有 path`).toMatch(/path:\s*string/);
+      const vars = src.match(/define:vars=\{\{([^}]*)\}\}/);
+      expect(vars, `${tag} 里找不到 define:vars`).not.toBeNull();
+      expect(vars![1], `${tag} 没把 path 交给 define:vars，is:inline 脚本里就拿不到它`).toMatch(
+        /\bpath\b/
+      );
+    });
+  }
+
+  it('giscus 用 specific + term 喂键，不用 mapping="pathname"', () => {
+    // giscus 的 client.js 里，pathname 分支是
+    //   c.term = 2 > location.pathname.length ? 'index'
+    //          : location.pathname.substring(1).replace(/\.\w+$/, '')
+    // 只去掉开头的 / 和 .扩展名，**不归一尾斜杠**；specific 分支才是 c.term = b.term。
+    const src = readFileSync(join(COMPONENTS, 'comments', 'CommentsGiscus.astro'), 'utf-8');
+    expect(src, "data-mapping 应为 'specific'").toMatch(/'data-mapping',\s*'specific'/);
+    expect(src, 'data-term 应喂构建期算好的 path').toMatch(/'data-term',\s*path/);
+    expect(src, "不能退回 'pathname'：那条分支读的是访客当时的 location.pathname").not.toMatch(
+      /'data-mapping',\s*'pathname'/
+    );
   });
 });

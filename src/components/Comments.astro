@@ -14,6 +14,10 @@ const { lazy = COMMENTS.lazyOnPosts } = Astro.props;
 
 // 评论线的路径键。用构建期的规范路径，不让 widget 去读 location.pathname——
 // 理由见 src/lib/comments.ts 的注释。
+// 三个 provider 一个都不能漏：giscus 早先没传，它的 data-mapping="pathname" 分支
+// 读的是原始 location.pathname（client.js 里只做了「去掉开头的 /、去掉 .扩展名」，
+// 不归一尾斜杠），于是 /blog/foo/ 与 /blog/foo 会落到两条互不可见的 Discussion 上——
+// 正是这个函数存在的目的。
 const path = normalizeCommentPath(Astro.url.pathname);
 
 // helper 只在真要懒加载时才输出，provider='none' 或留言页不用白搭一段脚本
@@ -22,9 +26,13 @@ const needsLazyHelper = lazy && COMMENTS.provider !== 'none';
 
 {needsLazyHelper && (
   <script is:inline>
-    {/* is:inline 脚本之间无法 import，共享逻辑只能挂在 window 上。
-        三个 provider 组件都调它，避免各写一份 IntersectionObserver——
-        改 rootMargin 时只有这一处。 */}
+    // is:inline 脚本之间无法 import，共享逻辑只能挂在 window 上。
+    // 三个 provider 组件都调它，避免各写一份 IntersectionObserver——
+    // 改 rootMargin 时只有这一处。
+    //
+    // 注释一律用 // ：花括号包起来的那种 JSX 注释是模板语法，写在 is:inline 的
+    // 脚本体里不会被 Astro 处理掉，会连花括号一起原样落进每一篇文章页的产物
+    // （浏览器把它解析成一个空块，无害，但读起来像写错了）。
     window.__commentsWhenNear = function (el, load) {
       // 极老浏览器没有 IntersectionObserver：直接加载，不引 polyfill。
       // 评论区读不到比多一个 polyfill 更糟。
@@ -50,7 +58,9 @@ const needsLazyHelper = lazy && COMMENTS.provider !== 'none';
   </script>
 )}
 
-{COMMENTS.provider === 'giscus' && <CommentsGiscus config={COMMENTS.giscus} lazy={lazy} />}
+{COMMENTS.provider === 'giscus' && (
+  <CommentsGiscus config={COMMENTS.giscus} path={path} lazy={lazy} />
+)}
 {COMMENTS.provider === 'twikoo' && (
   <CommentsTwikoo config={COMMENTS.twikoo} path={path} lazy={lazy} />
 )}

@@ -3,8 +3,18 @@
    base     = 重置、排版、工具类、.prose
    layout   = 页面网格、头部、页脚、响应式断点
    motion   = 入场动画与 prefers-reduced-motion 降级
-   comments = 评论区外壳与三方 widget 换肤（放最后，要盖在三方样式之上）
-   组件私有样式写在各自 .astro 的 <style> 里（Astro 自动 scoped）。 */
+   comments = 评论区外壳与三方 widget 换肤（放最后，是为了排在 tokens/base/layout/motion 之后）
+   组件私有样式写在各自 .astro 的 <style> 里（Astro 自动 scoped）。
+
+   ⚠️ 这里的顺序**管不到三方样式**。三个 widget 的样式都是运行时注入的，
+   排在整个站点样式包之后，@import 的先后与它们没有关系。
+   真正压住三方样式的是另外三样东西，改动它们等于拆掉唯一的防线：
+     Twikoo —— comments.css 里那一段的 !important（它的样式表运行时注入，同权重后来者胜）
+     Waline —— CommentsWaline.astro 用 insertBefore 把 waline.css 插到本站样式表**之前**
+     giscus —— iframe 边界，样式根本进不去，只能用 postMessage 换它自带的主题
+   这条注释此前写的是「放最后，要盖在三方样式之上」，是错的；留着错的说法，
+   下一个维护者会以为顺序已经兜住，顺手删掉 insertBefore 或 !important——
+   本分支上已经因为同一个推理错误返工过一次。 */
 @import './tokens.css';
 @import './base.css';
 @import './layout.css';

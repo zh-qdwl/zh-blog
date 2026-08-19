@@ -11,7 +11,9 @@ const { config, path, lazy } = Astro.props;
 
 // 版本写死，不用 @latest。latest 会在某天静默换掉 DOM 结构，
 // 而 comments.css 里那组 .tk-* / .el-* 覆盖是绑着结构的，会一起碎掉。
-// 升级时改这一行，然后回去核对 comments.css 的 Twikoo 段。
+// 那组选择器已经对着 1.7.19 的产物逐个核过（内嵌的 element-ui 样式表 +
+// Vue render 函数里的 staticClass），所以钉版本不只是防御性的：
+// 它是那份核对结果成立的前提。升级时改这一行，然后回去重做一遍核对。
 const TWIKOO_VERSION = '1.7.19';
 const cdn = `https://cdn.jsdelivr.net/npm/twikoo@${TWIKOO_VERSION}/dist/twikoo.min.js`;
 ---
