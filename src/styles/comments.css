@@ -29,3 +29,109 @@
 .comments-mount {
   min-height: 190px;
 }
+
+/* ===== 以下是三方 widget 的外观映射 =====
+   目标是让接进来的评论区看着像本站的一部分，而不是一块补丁。
+   两个 provider 的处境完全不同，分两段处理。
+
+   ⚠️ Twikoo 那一段（本文件末尾）在写下时后端尚未部署，widget 渲染不出完整 DOM，
+      因此那些选择器是照官方文档与社区教程盲写的，可能对不上、也可能有遗漏。
+      Worker 部署完成后必须回来对着真实 DOM 走一轮目视调整。 */
+
+/* ===== Waline =====
+   它暴露官方 CSS 变量，映射一遍就完事。变量名逐个核对过官方 style 参考页——
+   写错不会报错，只会静默不生效。
+
+   刻意不启用 Waline 的 dark 选项：那会注入
+   html[data-theme="dark"] { --waline-bg-color: #1e1e1e; ... } 一整组硬编码深色值，
+   权重高于这里写在 :root 上的映射，深色下把映射整片盖掉。
+   下面映射到的令牌（--card / --text / --border）本身已经跟着 data-theme 翻过一轮，
+   深色是自动跟上的。
+
+   为什么是 `:root, #waline-mount` 两个选择器、而不是只写 `:root`：
+   waline.css 自带一整块无条件的 :root 浅色默认值，与本块同权重（0,1,0），
+   打平时靠源码顺序决胜。CommentsWaline.astro 已用 insertBefore 把 Waline 的样式表
+   插到本站样式表之前来保证本块在后（那个保证由 Step 3b 的断言守着），
+   但那只覆盖 load() 执行时 <head> 里已有的节点——将来若有别的懒加载组件在更晚
+   append 一张样式表，同类问题会换个地方复现。
+   #waline-mount 是 ID 选择器（1,0,0），无条件压过任何 :root，与顺序无关，
+   为挂载区内的元素补上第二道保险。
+   两个选择器共用同一个声明块，所以变量表只有一份，不是抄两遍。
+   保留 :root 那一半是必要的：万一 Waline 把某些 UI（图片预览遮罩之类）挂到
+   #waline-mount 之外，那些元素继承不到挂载元素上的变量，只能靠 :root 兜住。 */
+:root,
+#waline-mount {
+  --waline-font-size: 0.95rem;
+  --waline-theme-color: var(--brand-strong);
+  --waline-active-color: var(--brand);
+  --waline-color: var(--text);
+  --waline-bg-color: var(--card);
+  --waline-bg-color-light: var(--bg-soft);
+  --waline-bg-color-hover: var(--bg-soft);
+  --waline-border-color: var(--border);
+  --waline-info-color: var(--text-soft);
+  --waline-info-bg-color: var(--bg-soft);
+  --waline-code-bg-color: var(--code-bg);
+  --waline-bq-color: var(--bg-soft);
+  --waline-badge-color: var(--brand-strong);
+  --waline-box-shadow: var(--shadow);
+}
+
+/* ===== Twikoo =====
+   ⚠️ 未经真实 DOM 验证，见文件头。
+   Twikoo 没有官方 CSS 变量、也没有暗色选项，只能覆盖它的类名。
+   官方文档自己也推荐用外部 CSS + !important 来盖（因为它的配置项存在数据库里、
+   加载有延迟），所以这里的 !important 不是偷懒，是官方姿势。
+
+   范围刻意收窄到「不改就明显不像本站」的几处：容器背景、边框、输入框、按钮、
+   链接色、次要文字。不做整体魔改——覆盖越多，升级时碎得越彻底。 */
+.twikoo {
+  --tk-radius: var(--radius);
+}
+
+/* 容器与卡片底色 */
+.twikoo .tk-comments,
+.twikoo .tk-submit {
+  color: var(--text);
+}
+
+/* 输入框：Twikoo 用的是 element-plus，类名带 el- 前缀 */
+.twikoo .el-textarea__inner,
+.twikoo .el-input__inner {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius) !important;
+}
+.twikoo .el-textarea__inner {
+  min-height: 120px !important;
+}
+.twikoo .el-textarea__inner:focus,
+.twikoo .el-input__inner:focus {
+  border-color: var(--brand) !important;
+}
+
+/* 发送按钮：本站按钮是圆角胶囊 + 品牌底 + 深色字 */
+.twikoo .tk-submit .tk-row-actions .el-button--primary {
+  background: var(--brand) !important;
+  border-color: var(--brand) !important;
+  color: var(--brand-ink) !important;
+  border-radius: 999px !important;
+}
+
+/* 次要文字：时间、UA 徽章、楼层信息 */
+.twikoo .tk-time,
+.twikoo .tk-extras,
+.twikoo .tk-nick-link {
+  color: var(--text-soft) !important;
+}
+
+/* 链接色统一走本站的 --link */
+.twikoo a {
+  color: var(--link);
+}
+
+/* 分隔线 */
+.twikoo .tk-comment {
+  border-color: var(--border) !important;
+}
