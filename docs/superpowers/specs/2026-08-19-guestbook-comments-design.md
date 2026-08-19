@@ -24,9 +24,15 @@
 ## 前置决定（已与用户确认）
 
 - **方向**：接 Twikoo 或 Waline 这类真正能提交的系统，不走 Giscus，不停在静态页
-- **后端倾向 Twikoo + Cloudflare Workers + MongoDB Atlas**（用户表述为"更偏向"，非最终拍定）。
+- **后端倾向 Twikoo + Cloudflare Workers**（用户表述为"更偏向"，非最终拍定）。
   因此本次仍**不部署后端**，只把接入点抽象成可切换配置；Waline 一路照样实现，
   作为 Twikoo 换肤不理想时的退路（见下方「Twikoo 换肤本次无法验收」）
+
+  > **勘误**：本文初稿把这条路径写成 "Twikoo + CF Workers + MongoDB Atlas"，是错的。
+  > 官方 `backend.html` 在 Cloudflare 一节只给了仓库链接，追到
+  > [twikoojs/twikoo-cloudflare](https://github.com/twikoojs/twikoo-cloudflare) 的 README
+  > 才看到：**CF Workers 版用 Cloudflare D1 存数据、R2 存图片，完全不碰 MongoDB**。
+  > 对用户是好消息——少一个第三方账号，数据库和图床都在 Cloudflare 自己家里。
 - **标题区保持素**，跟 `/about` 等内页一致，只润色文案，不做彩色 banner
 - **`provider='none'` 时**：保留邮件/Issue 卡，并补一句「即将开放」
 - **附加项全做**：选型/部署文档、留言须知短文案、文章页评论区懒加载。不再往外扩
@@ -44,7 +50,8 @@ Claude 不执行。本次交付的是前端集成 + 可切换配置 + 一份照�
 |---|---|---|
 | 官方支持 Cloudflare Workers | **是**（数据库必须 MongoDB Atlas） | **否**，只有第三方移植 |
 | 其他部署位 | Vercel / Netlify / 腾讯云 CloudBase / Railway / Zeabur / HF Spaces / AWS Lambda / Docker | Vercel / Netlify / Railway / Zeabur / 百度云函数 / 阿里云函数 / VPS |
-| 数据库 | 云端一律 MongoDB Atlas；Docker 版可用内嵌 lokijs | MongoDB / MySQL / TiDB / PostgreSQL / SQLite / CloudBase / **GitHub 仓库存 CSV** |
+| 数据库 | **CF Workers 版用 Cloudflare D1 + R2**；Vercel/Netlify 等用 MongoDB Atlas；Docker 版可用内嵌 lokijs | MongoDB / MySQL / TiDB / PostgreSQL / SQLite / CloudBase / **GitHub 仓库存 CSV** |
+| 当前版本 / CDN | 1.7.19，`https://cdn.jsdelivr.net/npm/twikoo@1.7.19/dist/twikoo.min.js`（国内可换 `registry.npmmirror.com`） | 随 `@waline/client` 发布 |
 | 官方 CSS 变量换肤 | **无** | **有** |
 | 官方暗色模式选项 | **无** | **有**，`dark` 可填 CSS 选择器 |
 | 前端接入 | `twikoo.init({ envId, el, path, lang, region })` | `init({ el, serverURL, dark })` |
@@ -52,8 +59,10 @@ Claude 不执行。本次交付的是前端集成 + 可切换配置 + 一份照�
 **取舍没有免费午餐**：
 
 - **Twikoo** 官方支持 CF Workers，后端能跟博客同平台（本站在 `*.workers.dev`），
-  国内可达性与博客本体一致。代价是换肤只能覆盖它的 `.tk-*` / `.el-*` 类名
-  （官方推荐外部 CSS + `!important`，或改用 `twikoo.nocss.js` 自己写全套），跨版本容易碎。
+  国内可达性与博客本体一致，且数据库/图床都用 Cloudflare 自家的 D1/R2，无需第三方账号。
+  代价有两层：一是换肤只能覆盖它的 `.tk-*` / `.el-*` 类名（官方推荐外部 CSS +
+  `!important`，或改用 `twikoo.nocss.js` 自己写全套），跨版本容易碎；二是 CF Workers
+  版官方评级 ★★☆☆☆，有一组明确写在 README 里的功能限制（见下）。
 - **Waline** 的 `dark` 选项可直接填 `'html[data-theme="dark"]'`——本站主题切换正是往
   `<html>` 上写 `data-theme`（`Header.astro` 的 `#theme-toggle`），一行对上，且它暴露
   官方 CSS 变量，能干净地映射到 `tokens.css`。代价是官方不支持 CF，得走 Vercel，
@@ -61,6 +70,43 @@ Claude 不执行。本次交付的是前端集成 + 可切换配置 + 一份照�
 
 因此 `comments.css` 里 Waline 那段是干净的变量映射，Twikoo 那段是一组带注释的类名覆盖，
 并在文件里注明「升级 Twikoo 后要回来看一眼」——这是它的固有代价，藏不掉。
+
+### Twikoo CF Workers 版的已知限制
+
+全部来自 `twikoo-cloudflare` 的 README，照实记录，不粉饰：
+
+| 限制 | 对本站的影响 |
+|---|---|
+| 免费版 Worker 1MiB 体积上限，需先清空三个 `node_modules` 文件再打包 | 部署时的额外步骤，写进文档 |
+| 必须用 `wrangler` 命令行部署，不能只在控制台点 | 部署时需要本地 Node 环境 |
+| **带斜杠 / 不带斜杠的 URL 被视为两条独立评论线** | **有实际影响，见下节** |
+| 环境变量控制不了应用行为 | 配置改动要走 Twikoo 管理面板 |
+| 不支持 IP 归属地 | 无影响——参考站那些 OS/浏览器徽章靠 UA，不靠 IP |
+| 图片上传走 R2，需另建 bucket | 可选功能，不建 bucket 就是不支持传图 |
+| XSS 过滤用 `xss` 包而非 `dompurify` | 无影响 |
+
+### 评论线路径必须规范化 · `src/lib/comments.ts`
+
+上表第三条对本站是真问题。全站链接统一写成 `/blog/${post.id}/`（带斜杠），
+但未配置 `trailingSlash`、Astro 默认 `build.format: 'directory'`，产出的是
+`/blog/foo/index.html`——带不带斜杠都能打开。访客从外部链接、手输网址、
+或搜索引擎结果进来时，`location.pathname` 可能是两种形态中的任意一种，
+Twikoo 就会把同一篇文章的评论**拆成两条互相看不见的线**。
+
+**解法**：不让 widget 去读 `location.pathname`，而是把 Astro 构建期的规范路径
+服务端渲染进 `init()` 的 `path` 参数。构建期的值对每个访客都一样，与他怎么进来无关。
+
+规范化逻辑抽成纯函数放 `src/lib/comments.ts`：
+
+```ts
+/** 评论线的路径键：统一带尾斜杠，与全站链接写法一致 */
+export function normalizeCommentPath(pathname: string): string;
+```
+
+放 `lib/` 而不是写在 `.astro` 里，是为了能进 vitest——本仓库测试只覆盖纯 TS 层，
+这是唯一能给这条逻辑上守卫的位置。规则、边界与用例见实现计划。
+
+Waline 同样接受 `path` 参数，两个 provider 共用这一个函数，不各写一套。
 
 ## 定下的方案
 
@@ -99,6 +145,8 @@ src/components/comments/
   ├─ CommentsGiscus.astro
   ├─ CommentsTwikoo.astro
   └─ CommentsWaline.astro
+src/lib/comments.ts                  normalizeCommentPath（纯函数，可测）
+src/lib/comments.test.ts             它的守卫
 src/styles/comments.css              三方 widget → 本站 tokens 的主题映射
 ```
 
@@ -182,22 +230,28 @@ twikoo/waline 是往容器里跑 `init()` 调用。塞进一个文件就是一�
 用户已倾向 **Twikoo + Cloudflare Workers + MongoDB Atlas**，因此文档**只详写这一条路径**，
 不再平铺两条——短的文档才会被真的照着做。内容：
 
-- **主线：Twikoo + CF Workers + MongoDB Atlas 分步操作**
-  - MongoDB Atlas 建免费集群（M0，512MB）、建库、拿连接串、放行网络访问
-  - 部署 Twikoo 的 Cloudflare Worker，把连接串配成环境变量
+- **主线：Twikoo + CF Workers + D1 + R2 分步操作**（步骤取自 `twikoo-cloudflare` README）
+  - clone `twikoojs/twikoo-cloudflare`、`npm install`
+  - 清空三个 `node_modules` 文件绕过免费版 1MiB 体积上限
+  - `npx wrangler login` → `npx wrangler d1 create twikoo` → 把返回的
+    `database_name` / `database_id` 填回 `wrangler.toml`
+  - `npx wrangler d1 execute twikoo --remote --file=./schema.sql` 建表
+  - 需要传图再做：`npx wrangler r2 bucket create twikoo` + 填 `R2_PUBLIC_URL`
+  - `npx wrangler deploy --minify`
   - 回到本仓库填 `COMMENTS.provider = 'twikoo'` 与 `twikoo.envId`（= Worker 地址），
     `region` 留空（那是腾讯云才要的）
-  - 首次打开留言页设管理密码、在 Twikoo 管理面板里配通知邮件
-- **每一步标注执行人**。以下只能用户自己做，Claude 不代劳：注册 MongoDB Atlas 账号、
-  注册/登录 Cloudflare、生成与填写数据库连接串和管理密码
+  - 首次打开留言页设管理密码；邮件通知可选，要配的话是 `SENDER_EMAIL` / `SENDER_NAME`
+    / `SMTP_SERVICE` / `SMTP_USER` / `SMTP_PASS` 这几个环境变量
+  - **附上「已知限制」那张表**，别让人部署完才发现传图要另开 R2
+- **每一步标注执行人**。以下只能用户自己做，Claude 不代劳：注册/登录 Cloudflare
+  账号（`wrangler login` 走浏览器授权）、生成与填写管理密码及 SMTP 凭据
 - **退路一节（简短）**：若 Twikoo 换肤调不满意，改 `COMMENTS.provider = 'waline'`
   + 填 `serverURL` 即可切到 Waline；附 Waline 官方部署入口链接，不展开步骤
 - 上面「核实到的硬事实」那张表照搬进来，附官方文档链接——它是当初为什么这么选的依据
 
-**写作前必须先核实**：Twikoo 部署到 CF Workers 的具体步骤不能凭印象写。
-实现该文档时先读一遍 Twikoo 官方 `backend.html` 里 Cloudflare 那一节，
-按当时文档的实际步骤落笔；对不上就照实写"官方文档以此为准"并给链接，
-不编造控制台里的按钮名字。
+**上述步骤已于 2026-08-19 从 `twikoo-cloudflare` README 核实**，不是凭印象写的。
+文档里要注明核实日期并给出仓库链接，声明「以仓库 README 为准」——
+第三方部署脚本变动频繁，写死的步骤总会过期，但注明了日期的步骤至少不会骗人。
 
 ## 不做
 
@@ -212,6 +266,7 @@ twikoo/waline 是往容器里跑 `init()` 调用。塞进一个文件就是一�
 |---|---|
 | provider 不为 `none` 时对应配置必填字段非空 | `src/consts.test.ts` |
 | provider 取值只能是四个之一 | `src/consts.test.ts` |
+| `normalizeCommentPath` 把带/不带尾斜杠归一成同一个键 | `src/lib/comments.test.ts` |
 | 主题映射若引入新颜色令牌，补对比度断言 | `src/styles/tokens.test.ts` |
 
 本次方案刻意**不引入新颜色令牌**（外壳保持素、映射全部复用现有 tokens），
