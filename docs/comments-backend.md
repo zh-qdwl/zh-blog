@@ -29,13 +29,18 @@ Twikoo 覆盖已经标注了这一点。
 | 限制 | 影响 |
 |---|---|
 | 免费版 Worker 有 1MiB 体积上限，需先清空三个 `node_modules` 文件 | 多一个部署步骤 |
-| 必须用 `wrangler` 命令行，不能只在控制台点 | 本地要有 Node 环境 |
 | 带斜杠 / 不带斜杠的 URL 视为两条独立评论线 | **本站已处理**，见 `src/lib/comments.ts` |
 | 环境变量控制不了应用行为 | 配置改动走 Twikoo 管理面板 |
 | 不支持 IP 归属地 | 无影响，UA 徽章不依赖 IP |
 | 图片上传需另建 R2 bucket | 不建就是不支持传图 |
 | XSS 过滤用 `xss` 包而非 `dompurify` | 无影响 |
-| 官方对这条部署路径的评级 | ★★☆☆☆ |
+
+下面两条不在这份 README 里，来源分开标注，别跟上表混为一谈：
+
+| 条目 | 来源 |
+|---|---|
+| 官方对这条部署路径的评级：★★☆☆☆ | 来自 Twikoo 官方文档的后端对比页 [twikoo.js.org/backend.html](https://twikoo.js.org/backend.html)，**不是** `twikoo-cloudflare` 的 README |
+| 必须用 `wrangler` 命令行，不能只在控制台点 | 本文作者的推断——下面「步骤」一节里所有部署动作确实都走 `wrangler`，但 README 本身没有把这句话列为限制条目 |
 
 ## 步骤
 
@@ -80,13 +85,21 @@ Twikoo 覆盖已经标注了这一点。
    npx wrangler d1 execute twikoo --remote --file=./schema.sql
    ```
 
-7. ⌨️ 需要支持传图再做这两步；不需要就跳过
+7. 需要支持传图再做这两步；不需要就跳过
 
-   ```bash
-   npx wrangler r2 bucket create twikoo
-   ```
+   a. ⌨️ 建 R2 bucket
 
-   然后把 bucket 的公开访问域名填进 `wrangler.toml` 的 `R2_PUBLIC_URL`。
+      ```bash
+      npx wrangler r2 bucket create twikoo
+      ```
+
+   b. 🧑 给这个 bucket 开公开访问，再把公开域名填进 `wrangler.toml` 的
+      `R2_PUBLIC_URL`。R2 bucket 默认私有，开公开访问是单独一步操作——
+      这份文档和 `twikoo-cloudflare` 的 README 都没写怎么做（README 原文
+      只有一句「Update the domain of R2 into `wrangler.toml` file」，没说
+      这个域名从哪来）。到这一步请自己去查 Cloudflare 官方的 R2 公开访问
+      文档，在你自己的 Cloudflare 账号里完成；这里不替你编一条控制台点击
+      路径，编了也没法替你核实。
 
 8. ⌨️ 部署
 
@@ -111,9 +124,18 @@ Twikoo 覆盖已经标注了这一点。
 
 10. 🧑 打开 `/guestbook`，按 Twikoo 的引导设管理密码。密码只能你自己设。
 
-11. 🧑 想要邮件通知的话，在 Cloudflare 控制台给 Worker 加这几个环境变量
-    （需要 SendGrid 或 MailChannels 账号，凭据只能你自己填）：
-    `SENDER_EMAIL`、`SENDER_NAME`、`SMTP_SERVICE`、`SMTP_USER`、`SMTP_PASS`
+11. 🧑 想要邮件通知的话，去**Twikoo 自己的管理面板**填这几个字段，**不是**
+    Cloudflare 控制台的 Worker 环境变量——这几个值 Twikoo 存在自己的配置里
+    （`config.auth.user` / `config.auth.pass` 等），运行时从那里读，Worker
+    环境变量管不到应用行为，上面「已知限制」表里「环境变量控制不了应用
+    行为」说的就是这件事，填到 Worker 环境变量里不会报错，也不会生效。
+
+    打开 `/guestbook`，用上一步设的管理密码登进管理面板，找到邮件通知相关
+    的设置项，填上（需要 SendGrid 或 MailChannels 账号，凭据只能你自己填）：
+    `SENDER_EMAIL`、`SENDER_NAME`、`SMTP_SERVICE`、`SMTP_USER`、`SMTP_PASS`。
+    README 没有逐字段说明面板里的具体位置，只提到填完后在配置页点
+    「Send test email」验证——面板里的具体路径以 README 和面板本身为准，
+    这里不替你编一条界面点击路径。
 
 ## 部署完成后必须补的一件事
 
@@ -122,7 +144,9 @@ Twikoo 覆盖已经标注了这一点。
 
 1. 打开 `/guestbook`，深浅色各切一遍
 2. 对着真实 DOM 核对那些 `.tk-*` / `.el-*` 选择器，改掉对不上的、补上漏掉的
-3. 把文件头那段「未经真实 DOM 验证」的警告删掉
+3. 删掉跟 Twikoo 这段绑定的两处警告注释——紧挨在 Twikoo 覆盖代码块上方的
+   那一条，以及文件头注释里提到 Twikoo「未经真实 DOM 验证」的那句附带
+   说明，两处都要删，不是只有一处
 
 ## 退路：换成 Waline
 
