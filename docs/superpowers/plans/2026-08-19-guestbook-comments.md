@@ -1130,7 +1130,14 @@ const WALINE_JS = 'https://unpkg.com/@waline/client@v3/dist/waline.js';
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = WALINE_CSS;
-      document.head.appendChild(link);
+      // 必须插到本站第一张样式表**之前**，不能用 appendChild。
+      // waline.css 里有一整块无条件的 :root 浅色默认值（--waline-bg-color:#fff 等），
+      // 与 comments.css 里的令牌映射同为 :root、权重相同（0,1,0）——权重打平时后来者胜。
+      // appendChild 会让 Waline 排在后面，于是它把整片映射盖掉，浅色深色一起失效。
+      // 查 style 也查 link：Astro 的 inlineStylesheets:'auto' 可能把本站 CSS 内联成 <style>。
+      const firstSheet = document.head.querySelector('link[rel="stylesheet"], style');
+      if (firstSheet) document.head.insertBefore(link, firstSheet);
+      else document.head.appendChild(link);
 
       // Waline 客户端是 ES module，用动态 import 加载
       import(WALINE_JS).then(function (mod) {
@@ -1381,6 +1388,22 @@ grep -l "comments-mount" dist/_astro/*.css dist/guestbook/index.html
 ```
 
 Expected: 至少列出一个文件
+
+- [ ] **Step 3b: 验证级联真的是本站映射胜出**
+
+Waline 的 `waline.css` 自带一整块无条件的 `:root` 浅色默认值，与本文件的映射**同为 `:root`、权重相同**（0,1,0）。权重打平时由源码顺序决定，所以映射能不能生效取决于两张样式表谁在后面。`CommentsWaline.astro` 已经用 `insertBefore` 把 Waline 的样式表插到本站第一张样式表之前来保证这一点（Task 6 的修复），本步骤是复查那个保证还在：
+
+```bash
+grep -c "insertBefore" src/components/comments/CommentsWaline.astro
+```
+
+Expected: `1`。**关键断言**——如果有人把它改回 `appendChild`，本文件这整张映射表会静默失效（浅色深色一起），页面上看不出任何报错。
+
+```bash
+grep -c "appendChild(link)" src/components/comments/CommentsWaline.astro
+```
+
+Expected: `1`（只剩 `head` 里一张样式表都没有时的兜底分支）。
 
 > **为什么两处都搜**：Astro 的 `build.inlineStylesheets` 默认是 `'auto'`——小于阈值的样式表会被内联进 `<head>` 的 `<style>`，大于阈值的才输出成 `dist/_astro/*.css` 外链。本仓库当前是外链形态（`dist/_astro/about.*.css` 里能查到 `--brand-strong`），但这个分界会随 CSS 体积漂移。**只搜 `dist/_astro/*.css` 已经在前三轮造成过三次假失败**（见 `.superpowers/sdd/progress.md` 里记的同类计划缺陷），所以这里一律两处都搜。
 
