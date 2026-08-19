@@ -25,7 +25,8 @@ src/
 │   └── comments/      # 评论区：四档 provider 各一个组件 + 共用的联系方式链接
 ├── layouts/            # 页面骨架
 ├── lib/                # 数据层：读取/排序/分组文章供页面和搜索索引复用，
-                        # 也含 contrast.ts 这类配色对比度计算的纯函数
+                        # 也含 contrast.ts（配色对比度计算）、comments.ts
+                        #（评论线路径归一化 + 评论配置必填字段校验）这类纯函数
 ├── pages/              # 路由页面，见下方「页面路由」
 └── styles/             # tokens（配色变量）/ base（重置与排版）/ layout（网格与断点）
                         # / motion（入场动效）/ comments（三方评论 widget 的外观映射）
