@@ -57,15 +57,35 @@ const { config, lazy } = Astro.props;
     if (lazy && window.__commentsWhenNear) window.__commentsWhenNear(host, load);
     else load();
 
-    // 主题切换后通知 iframe。监听 <html data-theme> 而不是给 #theme-toggle 绑点击——
-    // 属性变化是唯一真相，将来多一个切换入口也不用改这里。
-    new MutationObserver(function () {
+    // 把「找 iframe + postMessage」抽出来，下面两个 observer 都要用：
+    // 一个处理切换后的同步，一个处理 iframe 迟到时的补发。
+    // 找不到 iframe 时返回 false，调用方各自决定要不要继续等。
+    function syncTheme() {
       const frame = document.querySelector('iframe.giscus-frame');
-      if (!frame) return;
+      if (!frame) return false;
       frame.contentWindow.postMessage(
         { giscus: { setConfig: { theme: currentTheme() } } },
         'https://giscus.app'
       );
-    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      return true;
+    }
+
+    // 主题切换后通知 iframe。监听 <html data-theme> 而不是给 #theme-toggle 绑点击——
+    // 属性变化是唯一真相，将来多一个切换入口也不用改这里。
+    new MutationObserver(syncTheme).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    // giscus 的 client.js 是异步加载的，iframe 要等它跑完才会出现在 host 里，
+    // 这中间有一段真空期。如果访客恰好在这段真空期内点了主题切换，上面那个
+    // observer 会因为这里的 syncTheme() 找不到 iframe 而直接把这次变化丢掉——
+    // iframe 出生时带的是 load() 那一刻塞进 data-theme 属性的旧主题，
+    // 要等访客再点一次才会纠正过来。这里额外盯一下 host 的子树，
+    // iframe 一出现就用「当前」主题补发一次，成功后立刻断开，不常驻轮询。
+    const arrivalObserver = new MutationObserver(function () {
+      if (syncTheme()) arrivalObserver.disconnect();
+    });
+    arrivalObserver.observe(host, { childList: true, subtree: true });
   })();
 </script>
