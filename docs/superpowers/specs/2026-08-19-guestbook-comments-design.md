@@ -184,20 +184,34 @@ twikoo/waline 是往容器里跑 `init()` 调用。塞进一个文件就是一�
 
 ### 4. 主题融合 · `src/styles/comments.css`
 
-**Waline**：映射到现有令牌，深色交给它自己的 `dark` 选项，不写第二套。
+**Waline**：把它的变量全部映射到本站令牌，且**刻意不传 `dark` 选项**。
 
-```
---waline-theme-color   → var(--brand-strong)
---waline-bg-color      → var(--card)
---waline-border-color  → var(--border)
---waline-text-color    → var(--text)
---waline-info-color    → var(--text-soft)
---waline-border-radius → var(--radius)
-```
+不传 `dark` 的理由是一个具体的优先级冲突：`dark` 会让 Waline 注入
+`html[data-theme="dark"] { --waline-bg-color: #1e1e1e; ... }` 这一整组硬编码深色值，
+选择器权重高于我们写在 `:root` 上的映射，深色下会把映射整片盖掉。而映射目标
+（`--card` / `--text` / `--border`）本身已经跟着 `data-theme` 翻过一轮，
+深色是自动跟上的——传 `dark` 只会打架。
 
-`init()` 传 `dark: 'html[data-theme="dark"]'`。因为上面这些变量本身就指向 tokens，
-而 tokens 已经按 `data-theme` 换过一轮，深色其实是自动跟上的——`dark` 选项主要
-让 Waline 内部那些没走变量的地方（如代码块、遮罩）也切过去。
+映射表（变量名取自官方 style 参考页，逐个核对过，不是凭印象写的）：
+
+| Waline 变量 | 映射到 |
+|---|---|
+| `--waline-theme-color` | `var(--brand-strong)` |
+| `--waline-active-color` | `var(--brand)` |
+| `--waline-color` | `var(--text)` |
+| `--waline-bg-color` | `var(--card)` |
+| `--waline-bg-color-light` | `var(--bg-soft)` |
+| `--waline-bg-color-hover` | `var(--bg-soft)` |
+| `--waline-border-color` | `var(--border)` |
+| `--waline-info-color` | `var(--text-soft)` |
+| `--waline-info-bg-color` | `var(--bg-soft)` |
+| `--waline-code-bg-color` | `var(--code-bg)` |
+| `--waline-bq-color` | `var(--bg-soft)` |
+| `--waline-badge-color` | `var(--brand-strong)` |
+
+> 初稿写的 `--waline-text-color` 与 `--waline-border-radius` **不存在**，
+> 真名是 `--waline-color` 与 `--waline-avatar-radius`。变量名写错不会报错，
+> 只会静默不生效——这类错误必须在写代码前对着官方参考页核掉。
 
 **Twikoo**：类名覆盖。范围限定在本站需要的几处：容器背景、边框、输入框、按钮、
 链接色、次要文字色。每条注明覆盖的是哪个元素，并在文件头写明版本敏感。
