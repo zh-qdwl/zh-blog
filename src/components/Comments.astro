@@ -15,7 +15,40 @@ const { lazy = COMMENTS.lazyOnPosts } = Astro.props;
 // 评论线的路径键。用构建期的规范路径，不让 widget 去读 location.pathname——
 // 理由见 src/lib/comments.ts 的注释。
 const path = normalizeCommentPath(Astro.url.pathname);
+
+// helper 只在真要懒加载时才输出，provider='none' 或留言页不用白搭一段脚本
+const needsLazyHelper = lazy && COMMENTS.provider !== 'none';
 ---
+
+{needsLazyHelper && (
+  <script is:inline>
+    {/* is:inline 脚本之间无法 import，共享逻辑只能挂在 window 上。
+        三个 provider 组件都调它，避免各写一份 IntersectionObserver——
+        改 rootMargin 时只有这一处。 */}
+    window.__commentsWhenNear = function (el, load) {
+      // 极老浏览器没有 IntersectionObserver：直接加载，不引 polyfill。
+      // 评论区读不到比多一个 polyfill 更糟。
+      if (!('IntersectionObserver' in window)) {
+        load();
+        return;
+      }
+      var io = new IntersectionObserver(
+        function (entries) {
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].isIntersecting) {
+              io.disconnect();
+              load();
+              return;
+            }
+          }
+        },
+        // 提前 400px 开始加载，滚到评论区时脚本通常已经就位
+        { rootMargin: '400px' }
+      );
+      io.observe(el);
+    };
+  </script>
+)}
 
 {COMMENTS.provider === 'giscus' && <CommentsGiscus config={COMMENTS.giscus} lazy={lazy} />}
 {COMMENTS.provider === 'twikoo' && (
