@@ -1,0 +1,22 @@
+---
+import ContactLinks from './ContactLinks.astro';
+---
+
+<section class="comments card" aria-label="交流">
+  <p class="title">想聊两句？</p>
+  <p class="comments-hint">
+    留言功能正在接，暂时先走下面这两条。有问题、有想法，或者发现了什么错误，欢迎直接找我：
+  </p>
+  <ContactLinks />
+</section>
+
+<style>
+  /* .comments / .comments.card / .comments-hint 在 src/styles/comments.css 里，
+     四个 provider 组件共用。这里只留本卡片独有的标题样式——
+     刻意不叫全局类：archive.astro 也有个 .title，全局化会撞。 */
+  .title {
+    margin: 0 0 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+</style>

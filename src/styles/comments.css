@@ -1,0 +1,25 @@
+/* ===== 评论区样式 =====
+   本文件分两部分：
+   1. 共享外壳——四个 provider 组件（fallback / giscus / twikoo / waline）共用，
+      写在这里而不是各组件的 scoped <style> 里，否则就是四份逐字重复。
+   2. 三方 widget 换肤——Task 7 追加，见本文件后半。
+
+   类名一律带 comments- 前缀。不叫 .hint 是因为 src/pages/404.astro 已经有一个
+   自己的 .hint，全局规则会漏进那一页把它改样；同理 .title 与 archive.astro 撞名，
+   所以 fallback 卡的标题类不全局化、留在组件内。 */
+
+.comments {
+  margin-top: 48px;
+}
+
+/* fallback 卡额外叠了 .card 工具类，需要内边距；其他 provider 是裸挂载区，不要 */
+.comments.card {
+  padding: 24px;
+}
+
+/* 评论区里的提示小字：fallback 卡的说明、各 provider 的 noscript 提示 */
+.comments-hint {
+  margin: 0 0 18px;
+  color: var(--text-soft);
+  font-size: 0.93rem;
+}

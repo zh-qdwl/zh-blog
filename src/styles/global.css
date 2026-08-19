@@ -1,10 +1,12 @@
 /* 样式入口。具体规则按职责拆到下面几个文件：
-   tokens  = CSS 变量（配色、尺寸、字体）
-   base    = 重置、排版、工具类、.prose
-   layout  = 页面网格、头部、页脚、响应式断点
-   motion  = 入场动画与 prefers-reduced-motion 降级
+   tokens   = CSS 变量（配色、尺寸、字体）
+   base     = 重置、排版、工具类、.prose
+   layout   = 页面网格、头部、页脚、响应式断点
+   motion   = 入场动画与 prefers-reduced-motion 降级
+   comments = 评论区外壳与三方 widget 换肤（放最后，要盖在三方样式之上）
    组件私有样式写在各自 .astro 的 <style> 里（Astro 自动 scoped）。 */
 @import './tokens.css';
 @import './base.css';
 @import './layout.css';
 @import './motion.css';
+@import './comments.css';

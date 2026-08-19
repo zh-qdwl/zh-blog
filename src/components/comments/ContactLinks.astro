@@ -1,0 +1,44 @@
+---
+import { SOCIAL } from '../../consts';
+
+// 从仓库地址推出 issues 地址。必须用 SOCIAL.repo 而不是 SOCIAL.github ——
+// 后者是个人主页，拼出来的 /zh-qdwl/issues 是个死链。没配 repo 就只留邮箱。
+//
+// 这里是全站唯一读 SOCIAL 推导 issues 地址的地方。四个消费方（fallback 卡 +
+// 三个 provider 的 noscript）都用这个组件，别再各自拼一遍。
+const issuesUrl = SOCIAL.repo ? `${SOCIAL.repo.replace(/\/$/, '')}/issues` : '';
+---
+
+<div class="actions">
+  {SOCIAL.email && <a class="btn" href={`mailto:${SOCIAL.email}`}>发邮件</a>}
+  {issuesUrl && (
+    <a class="btn-ghost" href={issuesUrl} target="_blank" rel="noopener">
+      在 GitHub 上开 Issue
+    </a>
+  )}
+</div>
+
+<style>
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  /* .btn 来自 base.css 的全局工具类；这个幽灵按钮只有这里用，留在组件内 */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text);
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+  }
+  .btn-ghost:hover {
+    border-color: var(--brand);
+    background: var(--bg-soft);
+    text-decoration: none;
+  }
+</style>
