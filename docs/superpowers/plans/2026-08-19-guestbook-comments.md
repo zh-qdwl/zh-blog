@@ -615,7 +615,9 @@ npm run build
 
 Expected: `30 page(s) built`，零报错
 
-> **产物断言的计数方式**：Astro 默认 `compressHTML: true`，产物 HTML 基本压成一行，所以 `grep -c` 数的是**行数**（命中就是 1），不是出现次数。要数次数必须用 `grep -o … | wc -l`。下面凡是关心「出现几次」的地方都用后者，只关心「有没有」的地方才用 `grep -c`。
+> **产物断言的计数方式**：`grep -c` 数的是**命中的行数**，不是出现次数——同一行里出现三次也只记 1。要数次数必须用 `grep -o … | wc -l`。下面凡是关心「出现几次」的地方都用后者，只关心「有没有」的地方才用 `grep -c`。
+>
+> （Astro 默认 `compressHTML: true`，但它只压标签之间的空白，**并不会把整页压成一行**——实测留言页产物 181 行。所以两个命令给出的数字通常不同但都不是 1，别拿其中一个去反推另一个。）
 
 ```bash
 grep -o "在 GitHub 上开 Issue" dist/guestbook/index.html | wc -l
