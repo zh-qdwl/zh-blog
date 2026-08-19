@@ -264,4 +264,137 @@ describe('配色角色契约', () => {
       }
     }
   });
+
+  it('不得把 --waline-code-bg-color 映射到任何与 waline.css 硬编码前景 #bbb 凑不够对比度的令牌', () => {
+    // 上面那条「-color 结尾」的守卫为什么拦不住这一个案例：--waline-code-bg-color 名字里
+    // 带 "bg"，命中 nonTextRole 的例外，被判定成「背景角色，映射什么都行」——这个判断本身
+    // 没错，它确实是背景角色。但错在：这个「背景令牌」在 waline.css 里有一个变量系统看不见、
+    // 换不掉的硬编码搭档 —— `.wl-content pre code { color: #bbb }`（权重 (0,1,2)，
+    // 我们写在 :root/#waline-mount 上的变量表够不到）。
+    // 判断它安不安全，不能像别的前景变量那样去量「对 --card 的对比度」——它压根不是给
+    // --card 配对的，量出来的数字文不对题。只能直接拿 waline.css 里那个硬编码前景去量。
+    //
+    // 这也是为什么删掉这条映射（FINDING 2）之后必须单独补一条守卫：不这样做的话，
+    // 未来有人为了让代码块跟站点配色统一，把 --waline-code-bg-color 映射回 --code-bg，
+    // 会在上面那条「-color 结尾」的守卫和「--brand 亮度过高」那条守卫下都全绿通过——
+    // 两条都不检查这个变量与硬编码 #bbb 的搭配，实际效果却是把代码块的文字变不可见。
+    const WALINE_HARDCODED_CODE_FG = '#bbbbbb';
+
+    // 自检：不靠下面 for 循环里「扫到 0 条就什么都不断言」来证明守卫有效——
+    // 必须独立复现 re-review 量出的 1.80:1 且判定为不达标，否则说明这条断言的计算链路
+    // 本身就是坏的，整条约束会在「comments.css 里没人这么写」的当下静默通过，
+    // 却在真被写回去的那天照样放行。
+    const selfCheckLight = contrastRatio(WALINE_HARDCODED_CODE_FG, light['--code-bg']);
+    expect(selfCheckLight, `自检：#bbb 对亮色 --code-bg 应为 1.8:1 左右，实测 ${selfCheckLight}`).toBeCloseTo(
+      1.8,
+      1
+    );
+    expect(selfCheckLight, '自检：这个组合本该判定为不达标（<4.5:1）').toBeLessThan(AA);
+    const selfCheckWaline = contrastRatio(WALINE_HARDCODED_CODE_FG, '#282c34');
+    expect(
+      selfCheckWaline,
+      `自检：#bbb 对 Waline 自带默认底色 #282c34 应为 7.29:1 左右，实测 ${selfCheckWaline}`
+    ).toBeGreaterThanOrEqual(AA);
+
+    const files = collectStyleFiles(SRC_ROOT);
+    for (const file of files) {
+      const css = readFileSync(file, 'utf-8');
+      for (const m of css.matchAll(/--waline-code-bg-color\s*:\s*var\(\s*(--[\w-]+)\s*\)/g)) {
+        const [, token] = m;
+        for (const [themeName, tokens] of [
+          ['亮色', light],
+          ['暗色', dark],
+        ] as const) {
+          const value = tokens[token];
+          expect(value, `${themeName}缺少 ${token}`).toBeTruthy();
+          const ratio = contrastRatio(WALINE_HARDCODED_CODE_FG, value);
+          expect(
+            ratio,
+            `${relative(SRC_ROOT, file)} 把 --waline-code-bg-color 映射到了 ${token}：` +
+              `waline.css 给 .wl-content pre code 硬编码了 color:#bbb（权重 (0,1,2)，本文件的变量表` +
+              `覆盖不到这一条），${themeName}下 #bbb 对 ${token}（${value}）只有 ${ratio}:1，` +
+              `低于 ${AA}:1，代码块里的文字会读不出来。Waline 自己的默认底色 #282c34 就是照 #bbb ` +
+              `配的（7.29:1），那才是能读的那一对——不要覆盖 --waline-code-bg-color，让 Waline 自带的` +
+              `深色代码框留着。`
+          ).toBeGreaterThanOrEqual(AA);
+        }
+      }
+    }
+  });
+});
+
+describe('自定义属性引用不能指向不存在的令牌', () => {
+  // FINDING B：`--waline-theme-color: var(--lnk)` 这种打字错误——把 --link 少打一个字母——
+  // 浏览器不会报错，只会让这条声明**静默失效**：Waline 拿不到这个变量的值，退回它自己内置的
+  // 默认前景色。那正是 FINDING 1 修复之前的低对比度状态，重新量过：--waline-theme-color 的
+  // 默认值 #27ae60 对亮色 --card 只有 2.87:1，--waline-active-color 默认值 #2ecc71 只有
+  // 2.10:1，--waline-badge-color 默认值 #3498db 只有 3.15:1，全部不达标。
+  // 现有测试只检查「选对了的值读不读得出来」，从没检查过「引用的令牌到底存不存在」。
+  const files = collectStyleFiles(SRC_ROOT);
+
+  /**
+   * 把整份文件当纯文本扫一遍「看起来像自定义属性声明」的名字：要求以分号收尾，
+   * 排除说明性文字里恰好出现 `--xxx:` 但没有分号收尾的假阳性（中文注释几乎不会
+   * 写出这种带分号的片段，实测扫全部 src 下 .css/.astro 也没有一处误命中）。
+   *
+   * 不局限于 tokens.css 的 :root 块，这样才能同时认出三类「已经有地方定义」的情况：
+   *   1. tokens.css 的三个 :root 块——全局设计令牌；
+   *   2. comments.css 里 `:root, #waline-mount` 那一整张 Waline 变量表——这些自定义属性
+   *      是本文件的**局部定义**，从来就不在 tokens.css 里，但同样不算「未定义」；
+   *   3. PostCard.astro 用内联 style 写的 `` `--i:${index};` ``——纯文本正则不关心它是不是
+   *      写在 <style> 标签里，一样能抓到。
+   */
+  function collectDefinedCustomProps(fileList: string[]): Set<string> {
+    const out = new Set<string>();
+    for (const file of fileList) {
+      const css = readFileSync(file, 'utf-8');
+      for (const m of css.matchAll(/(--[\w-]+)\s*:\s*[^;]+;/g)) out.add(m[1]);
+    }
+    return out;
+  }
+
+  const defined = collectDefinedCustomProps(files);
+
+  // 已知的合法例外：Shiki 在构建期给每一段高亮代码内联写
+  // style="--shiki-dark:...;--shiki-dark-bg:...;..."（base.css 的 .astro-code 那几条规则消费
+  // 它们），这些自定义属性由 Shiki 逐 span 生成在构建产物里，src 下永远找不到「定义」——
+  // 这是「确实在别处定义、只是不在本仓库源码里」的合法情形，不是拼写错误。
+  // 逐个核对过 base.css 里的消费方（color / background-color / font-style / font-weight /
+  // text-decoration 五条）之后才列进白名单，不是图省事筛掉报错。
+  const externallyDefined = new Set([
+    '--shiki-dark',
+    '--shiki-dark-bg',
+    '--shiki-dark-font-style',
+    '--shiki-dark-font-weight',
+    '--shiki-dark-text-decoration',
+  ]);
+
+  it('自检：应扫到已知存在的令牌、扫不到瞎编的令牌，否则下面的断言是空头支票', () => {
+    for (const known of ['--link', '--card', '--brand', '--waline-theme-color', '--waline-white', '--i']) {
+      expect(defined.has(known), `自检：应识别出已定义的 ${known}`).toBe(true);
+    }
+    expect(
+      defined.has('--this-token-does-not-exist'),
+      '自检：编造的令牌名不该被判定为已定义'
+    ).toBe(false);
+  });
+
+  it('每个 var(--x) 引用的自定义属性都能在 src 下找到定义（本站令牌或第三方局部定义均可）', () => {
+    for (const file of files) {
+      const css = readFileSync(file, 'utf-8');
+      for (const m of css.matchAll(/var\(\s*(--[\w-]+)\s*(,[^)]*)?\)/g)) {
+        const [, token, fallback] = m;
+        // 带回退值的引用即使目标不存在也不会静默失效——fallback 就是显式声明的兜底行为，
+        // 不属于本条要拦的「悄悄失效」，例如 motion.css 的 var(--i, 0)。
+        if (fallback) continue;
+        if (externallyDefined.has(token)) continue;
+        expect(
+          defined.has(token),
+          `${relative(SRC_ROOT, file)} 引用了 var(${token})，但这个自定义属性在 src 下找不到任何定义，` +
+            `多半是拼写错误。CSS 对此不会报错，只会让消费它的声明静默失效、退回各自的默认值——` +
+            `Waline 的三个前景变量一旦这样退回默认值，就是 FINDING 1 修复之前的低对比度状态。`
+        ).toBe(true);
+      }
+    }
+  });
 });

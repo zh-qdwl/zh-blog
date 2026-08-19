@@ -89,7 +89,14 @@
      这和本文件 Twikoo 段的 .twikoo a / .tk-nick-link 是同一个令牌——
      两段此前对「链接文字该用什么色」给的是两个答案，现在一致了。
      active 也用 --link 而不是另找一个更亮的色：本站的 hover 约定是
-     「颜色不变、加下划线」（base.css 的 a:hover），换色反而不像本站。 */
+     「颜色不变、加下划线」（base.css 的 a:hover），换色反而不像本站。
+
+     注意「颜色不变」这条约定说的是**文字/链接**。--waline-active-color 同时也驱动
+     .wl-btn.primary:hover / :active 的 background 与 border-color——那是一颗 <button>，
+     加不了下划线，而它的静止态 background/border 用的正是同一个 --waline-theme-color，
+     两者现在同值，hover/active 会和静止态字节相同、没有任何反馈。这个问题不能靠在这里
+     换一个更亮的颜色解决（会掉回不达标的对比度），而是在本文件后面用一条不改变颜色本身、
+     只改亮度的普通规则单独补——见下面「Waline 按钮 hover 反馈」。 */
   --waline-theme-color: var(--link);
   --waline-active-color: var(--link);
   --waline-badge-color: var(--link);
@@ -125,6 +132,33 @@
 
   --waline-bq-color: var(--bg-soft);
   --waline-box-shadow: var(--shadow);
+}
+
+/* ===== Waline 按钮 hover 反馈 =====
+   不是自定义属性映射，是两条普通选择器规则，所以没放进上面那张变量表。
+
+   .wl-btn.primary 的静止态 background/border 用 --waline-theme-color，
+   hover/active 用 --waline-active-color——上面为了「链接换色不达标、颜色不变才对」
+   把两者都映射成了同一个 --link，副作用是这颗按钮的 hover/active 与静止态
+   background/border 完全同值，鼠标压上去、点下去都没有任何视觉反馈。
+   不能靠换一个更亮的颜色补反馈：本站唯一更亮的备选是品牌色，压在 --card 上
+   只有 2.14:1 / 2.77:1，会把 FINDING 1 刚修好的问题原样带回来。
+
+   本站自己遇到同样处境时的答案是 base.css 的 .btn:hover——不改 color，
+   用 filter: brightness(...) 让实底看着更亮一点。这里照搬同一个思路，
+   只是数值套本站已有的过渡令牌 --dur / --ease，不新写一个时长。
+   filter 只改「看起来多亮」，不改变 --waline-theme-color / --waline-active-color
+   本身的色值，因此不影响上面已经量过的 --link 对 --card 对比度。
+
+   锚定在 #waline-mount 下：.wl-btn.primary 是 Waline 私有的类名，本站其余地方
+   不会出现，加前缀纯粹是为了跟 comments.css 其余规则的锚定习惯保持一致，
+   不会、也不需要漏到评论区之外。 */
+#waline-mount .wl-btn.primary {
+  transition: filter var(--dur) var(--ease);
+}
+#waline-mount .wl-btn.primary:hover,
+#waline-mount .wl-btn.primary:active {
+  filter: brightness(1.08);
 }
 
 /* ===== Twikoo =====

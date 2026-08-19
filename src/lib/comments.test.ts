@@ -127,5 +127,10 @@ describe('归一后的路径键真的接到了每个 provider（扫描组件源�
     expect(src, "不能退回 'pathname'：那条分支读的是访客当时的 location.pathname").not.toMatch(
       /'data-mapping',\s*'pathname'/
     );
+    // client.js 里 c.strict = b.strict || '0'——specific 不显式给 data-strict 就是
+    // 非严格模式，giscus 会用 term 做「标题包含」的模糊匹配去找 Discussion。
+    expect(src, "specific 映射必须显式给 data-strict='1'，否则退回非严格的模糊匹配").toMatch(
+      /'data-strict',\s*'1'/
+    );
   });
 });

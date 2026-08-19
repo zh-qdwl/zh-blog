@@ -64,6 +64,14 @@ const GISCUS_ORIGIN = 'https://giscus.app';
       // 和 Twikoo / Waline 用的是同一个键（src/lib/comments.ts）。
       s.setAttribute('data-mapping', 'specific');
       s.setAttribute('data-term', path);
+      // specific 分支是 c.term = b.term，直接吃我们给的值，但 client.js 里
+      // c.strict = b.strict || '0'——不显式给 data-strict，giscus 会按非严格模式，
+      // 用这个 term 去做「标题包含」的模糊匹配来找 Discussion，而不是精确匹配。
+      // 一旦某篇文章的 term 恰好是另一篇的子串（例如 "/blog/go/" 是
+      // "/blog/gorm/" 的前缀关系反过来也一样可能撞上），就会绑到错的 Discussion。
+      // 当前全站 term 都带尾斜杠且互不包含，这条隐患还没被触发，
+      // 但只要多一个 data-strict 属性就能把「精确匹配」钉死，没有理由不加。
+      s.setAttribute('data-strict', '1');
       s.setAttribute('data-reactions-enabled', '1');
       s.setAttribute('data-emit-metadata', '0');
       s.setAttribute('data-input-position', 'top');
