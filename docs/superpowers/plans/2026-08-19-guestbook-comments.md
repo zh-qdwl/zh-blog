@@ -1283,8 +1283,21 @@ CSS 也放到 load() 里注入，懒加载时才不会白拉一个请求。"
    html[data-theme="dark"] { --waline-bg-color: #1e1e1e; ... } 一整组硬编码深色值，
    权重高于这里写在 :root 上的映射，深色下把映射整片盖掉。
    下面映射到的令牌（--card / --text / --border）本身已经跟着 data-theme 翻过一轮，
-   深色是自动跟上的。 */
-:root {
+   深色是自动跟上的。
+
+   为什么是 `:root, #waline-mount` 两个选择器、而不是只写 `:root`：
+   waline.css 自带一整块无条件的 :root 浅色默认值，与本块同权重（0,1,0），
+   打平时靠源码顺序决胜。CommentsWaline.astro 已用 insertBefore 把 Waline 的样式表
+   插到本站样式表之前来保证本块在后（那个保证由 Step 3b 的断言守着），
+   但那只覆盖 load() 执行时 <head> 里已有的节点——将来若有别的懒加载组件在更晚
+   append 一张样式表，同类问题会换个地方复现。
+   #waline-mount 是 ID 选择器（1,0,0），无条件压过任何 :root，与顺序无关，
+   为挂载区内的元素补上第二道保险。
+   两个选择器共用同一个声明块，所以变量表只有一份，不是抄两遍。
+   保留 :root 那一半是必要的：万一 Waline 把某些 UI（图片预览遮罩之类）挂到
+   #waline-mount 之外，那些元素继承不到挂载元素上的变量，只能靠 :root 兜住。 */
+:root,
+#waline-mount {
   --waline-font-size: 0.95rem;
   --waline-theme-color: var(--brand-strong);
   --waline-active-color: var(--brand);
