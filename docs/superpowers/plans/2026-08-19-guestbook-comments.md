@@ -1037,10 +1037,12 @@ grep -o 'const path = "/blog/tmux-guide/";' dist/blog/tmux-guide/index.html
 Expected: 输出一次。证明文章页各自拿到自己的路径键
 
 ```bash
-grep -c "location.pathname" dist/guestbook/index.html
+grep -cE "path:\s*location\.pathname" dist/guestbook/index.html
 ```
 
-Expected: `0`。**关键断言**——确认没有任何地方退回去读浏览器当前路径
+Expected: `0`。**关键断言**——确认没有任何地方退回去读浏览器当前路径。
+
+> **不要**改用 `grep -c "location.pathname"`：那样会得到 `1`，因为组件里那句解释性注释本身就写着 `location.pathname`，而 `is:inline` 脚本连注释一起原样进产物。断言必须只盯**可执行位置**，否则它会因为代码注释得清楚而失败——那是荒谬的激励。
 
 - [ ] **Step 4: 改回 `none` 并确认恢复**
 
