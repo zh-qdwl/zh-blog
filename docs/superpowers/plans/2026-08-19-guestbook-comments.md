@@ -1569,29 +1569,31 @@ npm run build
 Expected: `30 page(s) built`，零报错
 
 ```bash
-grep -c "__commentsWhenNear" dist/blog/tmux-guide/index.html
+grep -o "window.__commentsWhenNear = function" dist/blog/tmux-guide/index.html | wc -l
 ```
 
-Expected: 非零。文章页有 helper（`lazyOnPosts` 默认 `true`）
+Expected: `1`。文章页有 helper（`lazyOnPosts` 默认 `true`）。
+
+> **必须只数 helper 的定义，不能裸 grep `__commentsWhenNear`**：三个 provider 组件里那句 `if (lazy && window.__commentsWhenNear)` 无论 `lazy` 真假都会原样进产物，所以裸串在关掉懒加载的页面上照样出现 2 次。`rootMargin` 也只存在于 helper 里，可以作为同样可靠的判据。
 
 ```bash
-grep -c "__commentsWhenNear" dist/guestbook/index.html
+grep -o "window.__commentsWhenNear = function" dist/guestbook/index.html | wc -l
 ```
 
-Expected: **非零**。留言页此刻还没传 `lazy={false}`（那是 Task 9 的事），所以它走的是默认值 `COMMENTS.lazyOnPosts = true`，helper 照样会输出。这是本阶段的正确状态，不是缺陷——Task 9 Step 3 会把它翻成 `0` 并复查。
+Expected: `1`。留言页此刻还没传 `lazy={false}`（那是 Task 9 的事），所以它走的是默认值 `COMMENTS.lazyOnPosts = true`，helper 照样会输出。这是本阶段的正确状态，不是缺陷——Task 9 Step 3 会把它翻成 `0` 并复查。
 
 ```bash
-grep -c "rootMargin" dist/blog/tmux-guide/index.html
+grep -o "rootMargin" dist/blog/tmux-guide/index.html | wc -l
 ```
 
-Expected: 非零
+Expected: `3`
 
 - [ ] **Step 3: 改回 `none` 并确认 helper 不输出**
 
 ```bash
 git checkout src/consts.ts
 npm run build
-grep -c "__commentsWhenNear" dist/blog/tmux-guide/index.html
+grep -o "window.__commentsWhenNear = function" dist/blog/tmux-guide/index.html | wc -l
 ```
 
 Expected: `0`。provider='none' 时不该白搭一段脚本
@@ -1707,16 +1709,16 @@ Expected: `1`
 sed -i "s/provider: 'none' as CommentProvider/provider: 'twikoo' as CommentProvider/" src/consts.ts
 sed -i "s|    envId: '',|    envId: 'https://twikoo-test.example.workers.dev',|" src/consts.ts
 npm run build
-grep -c "__commentsWhenNear" dist/guestbook/index.html
+grep -o "window.__commentsWhenNear = function" dist/guestbook/index.html | wc -l
 ```
 
 Expected: `0`。**关键断言**——留言页现在传了 `lazy={false}`，不再输出懒加载 helper
 
 ```bash
-grep -c "__commentsWhenNear" dist/blog/tmux-guide/index.html
+grep -o "window.__commentsWhenNear = function" dist/blog/tmux-guide/index.html | wc -l
 ```
 
-Expected: 非零。文章页仍然懒加载
+Expected: `1`。文章页仍然懒加载
 
 ```bash
 git checkout src/consts.ts
