@@ -1,25 +1,14 @@
 ---
 import { COMMENTS } from '../consts';
 import CommentsFallback from './comments/CommentsFallback.astro';
+import CommentsGiscus from './comments/CommentsGiscus.astro';
+
+interface Props {
+  /** 懒加载：滚到附近才拉三方脚本。留言页应传 false */
+  lazy?: boolean;
+}
+const { lazy = COMMENTS.lazyOnPosts } = Astro.props;
 ---
 
-{COMMENTS.provider === 'giscus' ? (
-  <section class="comments" aria-label="评论">
-    <script
-      src="https://giscus.app/client.js"
-      data-repo={COMMENTS.giscus.repo}
-      data-repo-id={COMMENTS.giscus.repoId}
-      data-category={COMMENTS.giscus.category}
-      data-category-id={COMMENTS.giscus.categoryId}
-      data-mapping="pathname"
-      data-reactions-enabled="1"
-      data-emit-metadata="0"
-      data-input-position="top"
-      data-lang="zh-CN"
-      crossorigin="anonymous"
-      async
-    ></script>
-  </section>
-) : (
-  <CommentsFallback />
-)}
+{COMMENTS.provider === 'giscus' && <CommentsGiscus config={COMMENTS.giscus} lazy={lazy} />}
+{COMMENTS.provider === 'none' && <CommentsFallback />}

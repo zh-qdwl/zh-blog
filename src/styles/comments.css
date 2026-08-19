@@ -23,3 +23,9 @@
   color: var(--text-soft);
   font-size: 0.93rem;
 }
+
+/* 三方 widget 的挂载容器。给个最小高度，懒加载注入 widget 时才不会把下方内容
+   猛地顶一下（CLS）。190px 约等于一个空表单的高度，宁可略矮也不要留一大片空白。 */
+.comments-mount {
+  min-height: 190px;
+}

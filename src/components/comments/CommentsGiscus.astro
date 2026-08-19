@@ -1,0 +1,71 @@
+---
+import NoScriptNotice from './NoScriptNotice.astro';
+
+interface Props {
+  config: { repo: string; repoId: string; category: string; categoryId: string };
+  lazy: boolean;
+}
+const { config, lazy } = Astro.props;
+---
+
+<section class="comments" aria-label="评论">
+  <div id="giscus-mount" class="comments-mount"></div>
+  <NoScriptNotice />
+</section>
+
+<script
+  is:inline
+  define:vars={{
+    repo: config.repo,
+    repoId: config.repoId,
+    category: config.category,
+    categoryId: config.categoryId,
+    lazy,
+  }}
+>
+  (function () {
+    const host = document.getElementById('giscus-mount');
+    if (!host) return;
+
+    // giscus 是 iframe，comments.css 的变量透不进去，只能按当前主题选它自带的配色，
+    // 再在本站切换主题时用 postMessage 通知它换。
+    function currentTheme() {
+      return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    }
+
+    let loaded = false;
+    function load() {
+      if (loaded) return;
+      loaded = true;
+      const s = document.createElement('script');
+      s.src = 'https://giscus.app/client.js';
+      s.async = true;
+      s.crossOrigin = 'anonymous';
+      s.setAttribute('data-repo', repo);
+      s.setAttribute('data-repo-id', repoId);
+      s.setAttribute('data-category', category);
+      s.setAttribute('data-category-id', categoryId);
+      s.setAttribute('data-mapping', 'pathname');
+      s.setAttribute('data-reactions-enabled', '1');
+      s.setAttribute('data-emit-metadata', '0');
+      s.setAttribute('data-input-position', 'top');
+      s.setAttribute('data-lang', 'zh-CN');
+      s.setAttribute('data-theme', currentTheme());
+      host.appendChild(s);
+    }
+
+    if (lazy && window.__commentsWhenNear) window.__commentsWhenNear(host, load);
+    else load();
+
+    // 主题切换后通知 iframe。监听 <html data-theme> 而不是给 #theme-toggle 绑点击——
+    // 属性变化是唯一真相，将来多一个切换入口也不用改这里。
+    new MutationObserver(function () {
+      const frame = document.querySelector('iframe.giscus-frame');
+      if (!frame) return;
+      frame.contentWindow.postMessage(
+        { giscus: { setConfig: { theme: currentTheme() } } },
+        'https://giscus.app'
+      );
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  })();
+</script>

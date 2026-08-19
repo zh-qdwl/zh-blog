@@ -1,0 +1,11 @@
+---
+import ContactLinks from './ContactLinks.astro';
+
+// 三个 provider 的 <noscript> 内容一模一样，抽在这里。
+// 理由同 ContactLinks：复制三份，改这句提示就得改三处，必然漏一个。
+---
+
+<noscript>
+  <p class="comments-hint">评论区需要 JavaScript。也可以直接找我：</p>
+  <ContactLinks />
+</noscript>
