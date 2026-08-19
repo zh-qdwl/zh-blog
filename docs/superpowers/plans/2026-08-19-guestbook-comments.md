@@ -630,10 +630,10 @@ grep -o 'href="https://github.com/zh-qdwl/zh-blog/issues"' dist/guestbook/index.
 Expected: 输出该 href 一次。**关键断言**——证明用的是 `SOCIAL.repo` 而不是 `SOCIAL.github`（后者会拼成 `github.com/zh-qdwl/issues`）
 
 ```bash
-grep -o 'href="mailto:[^"]*"' dist/guestbook/index.html
+grep -o 'href="mailto:[^"]*"' dist/guestbook/index.html | wc -l
 ```
 
-Expected: `href="mailto:1498690097@qq.com"`
+Expected: `2`。**注意不是 1**——`Footer.astro` 每页都独立渲染一个 mailto 链接，与本组件无关。只想看本组件那一个就用 `grep -o 'class="btn" href="mailto:[^"]*"' dist/guestbook/index.html | wc -l`，那个才是 `1`。
 
 ```bash
 grep -l "comments-hint" dist/_astro/*.css dist/guestbook/index.html
