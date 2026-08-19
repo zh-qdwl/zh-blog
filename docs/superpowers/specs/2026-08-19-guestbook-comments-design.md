@@ -24,7 +24,9 @@
 ## 前置决定（已与用户确认）
 
 - **方向**：接 Twikoo 或 Waline 这类真正能提交的系统，不走 Giscus，不停在静态页
-- **后端选型暂缓**：用户要再想想放哪。因此本次**不部署后端**，只把接入点抽象成可切换配置
+- **后端倾向 Twikoo + Cloudflare Workers + MongoDB Atlas**（用户表述为"更偏向"，非最终拍定）。
+  因此本次仍**不部署后端**，只把接入点抽象成可切换配置；Waline 一路照样实现，
+  作为 Twikoo 换肤不理想时的退路（见下方「Twikoo 换肤本次无法验收」）
 - **标题区保持素**，跟 `/about` 等内页一致，只润色文案，不做彩色 banner
 - **`provider='none'` 时**：保留邮件/Issue 卡，并补一句「即将开放」
 - **附加项全做**：选型/部署文档、留言须知短文案、文章页评论区懒加载。不再往外扩
@@ -152,6 +154,13 @@ twikoo/waline 是往容器里跑 `init()` 调用。塞进一个文件就是一�
 **Twikoo**：类名覆盖。范围限定在本站需要的几处：容器背景、边框、输入框、按钮、
 链接色、次要文字色。每条注明覆盖的是哪个元素，并在文件头写明版本敏感。
 
+> **Twikoo 换肤本次无法验收。** Twikoo 的 widget 要连上后端才渲染出完整 DOM，
+> 后端尚未部署，因此这段覆盖是**照官方文档与社区教程盲写**的，选择器可能对不上、
+> 也可能有遗漏的元素。它必须在 Worker 部署完成后再走一轮目视调整。
+>
+> 这一条同时是保留 Waline 实现的理由：Twikoo 恰好脆在换肤上，
+> 若调整后仍不理想，改 `COMMENTS.provider` 一行即可切走，不必重做集成层。
+
 **Giscus**：`data-theme` 按当前 `data-theme` 取值，并在 `#theme-toggle` 点击后
 用 `postMessage` 通知 iframe 换主题——giscus 是 iframe，CSS 变量透不进去。
 
@@ -161,7 +170,8 @@ twikoo/waline 是往容器里跑 `init()` 调用。塞进一个文件就是一�
 
 - `h1`「留言」保留
 - lead 重写一句
-- 新增一行**留言须知**小字：邮箱不公开、支持 Markdown、大概多久回
+- 新增一行**留言须知**小字：邮箱不公开、支持 Markdown。
+  **刻意不写回复时效**——那是个可能兑现不了的承诺，写了做不到比不写更糟
 - 下面直接 `<Comments lazy={false} />`
 
 `CommentsFallback.astro` 在 `ContactLinks` 两个按钮之上，补一句
@@ -169,14 +179,25 @@ twikoo/waline 是往容器里跑 `init()` 调用。塞进一个文件就是一�
 
 ### 6. 选型/部署文档 · `docs/comments-backend.md`
 
-给未来的自己看的决策文档，内容：
+用户已倾向 **Twikoo + Cloudflare Workers + MongoDB Atlas**，因此文档**只详写这一条路径**，
+不再平铺两条——短的文档才会被真的照着做。内容：
 
-- 上面「核实到的硬事实」那张表，附官方文档链接
-- 两条推荐路径的分步操作：
-  - **Twikoo + Cloudflare Workers + MongoDB Atlas**（后端与博客同平台）
-  - **Waline + Vercel + GitHub 存储**（零数据库，数据在自己仓库里）
-- 每条路径明确标出**哪些步骤只能用户自己做**（注册账号、生成并填写密钥）
-- 定完之后回来改哪一行（`COMMENTS.provider` 与对应那组字段）
+- **主线：Twikoo + CF Workers + MongoDB Atlas 分步操作**
+  - MongoDB Atlas 建免费集群（M0，512MB）、建库、拿连接串、放行网络访问
+  - 部署 Twikoo 的 Cloudflare Worker，把连接串配成环境变量
+  - 回到本仓库填 `COMMENTS.provider = 'twikoo'` 与 `twikoo.envId`（= Worker 地址），
+    `region` 留空（那是腾讯云才要的）
+  - 首次打开留言页设管理密码、在 Twikoo 管理面板里配通知邮件
+- **每一步标注执行人**。以下只能用户自己做，Claude 不代劳：注册 MongoDB Atlas 账号、
+  注册/登录 Cloudflare、生成与填写数据库连接串和管理密码
+- **退路一节（简短）**：若 Twikoo 换肤调不满意，改 `COMMENTS.provider = 'waline'`
+  + 填 `serverURL` 即可切到 Waline；附 Waline 官方部署入口链接，不展开步骤
+- 上面「核实到的硬事实」那张表照搬进来，附官方文档链接——它是当初为什么这么选的依据
+
+**写作前必须先核实**：Twikoo 部署到 CF Workers 的具体步骤不能凭印象写。
+实现该文档时先读一遍 Twikoo 官方 `backend.html` 里 Cloudflare 那一节，
+按当时文档的实际步骤落笔；对不上就照实写"官方文档以此为准"并给链接，
+不编造控制台里的按钮名字。
 
 ## 不做
 
