@@ -111,16 +111,41 @@ export const MINI_PROGRAM = {
   href: '/blog/pocket-tools/',
 };
 
-// 评论系统。
-// provider = 'none'  → 文章底部和留言页渲染静态「交流」区块（当前）
-// provider = 'giscus' → 接 GitHub Discussions，需先把仓库设为 public、
-//                       开启 Discussions、安装 giscus app，然后填下面四项
+// 评论系统。四档，改 provider 一行就切换，其余配置可以先留空。
+//
+//   'none'   → 文章底部与留言页渲染静态「交流」卡（当前）
+//   'giscus' → GitHub Discussions。零后端，但访客必须有 GitHub 账号
+//   'twikoo' → 需自建后端。倾向方案：Cloudflare Workers + D1 + R2，
+//              步骤见 docs/comments-backend.md
+//   'waline' → 需自建后端。作为 Twikoo 换肤不理想时的退路
+//
+// 必填字段由 consts.test.ts 守着：provider 不为 'none' 时对应那组不能留空。
+// 少了这道守卫，填一半就上线只会在页面上留一块空白，构建不报错。
+export type CommentProvider = 'none' | 'giscus' | 'twikoo' | 'waline';
+
 export const COMMENTS = {
-  provider: 'none' as 'none' | 'giscus',
+  provider: 'none' as CommentProvider,
+
+  /** 文章页评论区懒加载：滚到附近才拉三方脚本。
+      留言页不受它影响——评论区就是那一页的主体，永远立即加载。 */
+  lazyOnPosts: true,
+
   giscus: {
     repo: '',
     repoId: '',
     category: '',
     categoryId: '',
+  },
+
+  twikoo: {
+    /** 后端地址（Vercel / Cloudflare Worker）或腾讯云环境 ID */
+    envId: '',
+    /** 仅腾讯云需要填，Vercel / Cloudflare 一律留空 */
+    region: '',
+  },
+
+  waline: {
+    /** 后端地址，例如 https://xxx.vercel.app */
+    serverURL: '',
   },
 };

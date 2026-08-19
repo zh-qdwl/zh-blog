@@ -15,3 +15,33 @@ export function normalizeCommentPath(pathname: string): string {
   if (!pathname) return '/';
   return pathname.endsWith('/') ? pathname : `${pathname}/`;
 }
+
+/** 各档 provider 的必填字段。这是全站唯一一份，consts.test.ts 不再自己抄一遍。 */
+const REQUIRED_FIELDS: Record<string, string[]> = {
+  giscus: ['repo', 'repoId', 'category', 'categoryId'],
+  twikoo: ['envId'],
+  waline: ['serverURL'],
+};
+
+/** COMMENTS 的最小结构约束。写得松是刻意的——测试要能传造出来的残缺配置进来。 */
+export type CommentsConfigLike = {
+  provider: string;
+  [group: string]: unknown;
+};
+
+/**
+ * 返回当前启用的 provider 缺失的必填字段名。
+ * provider='none'、或该档全部填齐时返回空数组。
+ *
+ * 只看启用的那一档：未启用的 provider 允许留空，否则想切换就得先把三档全填上。
+ * 空白字符按缺失处理——复制粘贴很容易留个空格，视觉上「填了」但实际是空的。
+ */
+export function missingCommentFields(cfg: CommentsConfigLike): string[] {
+  const required = REQUIRED_FIELDS[cfg.provider];
+  if (!required) return []; // 'none'，或将来新增但还没登记必填字段的档
+  const group = (cfg[cfg.provider] ?? {}) as Record<string, unknown>;
+  return required.filter((key) => {
+    const value = group[key];
+    return typeof value !== 'string' || value.trim() === '';
+  });
+}
