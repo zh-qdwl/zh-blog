@@ -3,6 +3,7 @@ import {
   AUTHOR,
   AUTHOR_ROLE,
   AVATAR,
+  COMMENTS,
   HERO_IMAGE,
   HERO_FOCUS,
   HERO_TONE,
@@ -11,6 +12,7 @@ import {
   NAV_LINKS,
 } from './consts';
 import { NAV_ICONS } from './lib/nav-icons';
+import { missingCommentFields } from './lib/comments';
 
 describe('首页整屏 Hero 的配置', () => {
   it('HERO_TAGLINES 不为空，且没有空串', () => {
@@ -106,5 +108,39 @@ describe('导航入口', () => {
     for (const name of Object.keys(NAV_ICONS)) {
       expect(used.has(name), `NAV_ICONS 里的 "${name}" 已经没有导航项在用`).toBe(true);
     }
+  });
+});
+
+describe('评论系统配置', () => {
+  const PROVIDERS = ['none', 'giscus', 'twikoo', 'waline'];
+
+  it('provider 只能是四档之一', () => {
+    // 写错不会报错：分发器四个分支全不命中，评论区静默消失
+    expect(PROVIDERS).toContain(COMMENTS.provider);
+  });
+
+  it('每档 provider 的配置对象都存在', () => {
+    // 分发器把整组配置当 props 传下去，缺对象会在构建期炸在组件里，
+    // 报错信息离病根很远，所以在这里先拦一道
+    for (const p of PROVIDERS.filter((p) => p !== 'none')) {
+      expect(COMMENTS[p as 'giscus' | 'twikoo' | 'waline'], `COMMENTS.${p} 不存在`).toBeTruthy();
+    }
+  });
+
+  it('启用的 provider 没有缺失的必填字段', () => {
+    // 判定逻辑在 lib/comments.ts，那边用造数据证明过它真的会报缺失；
+    // 这里只负责把它浇到真实配置上。填一半就上线是最危险的情形：
+    // 静态站构建不报错，页面上只是一块空白，只有真人打开才发现。
+    const missing = missingCommentFields(COMMENTS);
+    expect(
+      missing,
+      `provider 已设为 ${COMMENTS.provider}，但这些必填字段是空的：${missing.join(', ')}`
+    ).toEqual([]);
+  });
+
+  it('lazyOnPosts 是布尔值', () => {
+    // 它被 define:vars 传进 is:inline 脚本做 if 判断，
+    // 写成字符串 'false' 会被当成真值，懒加载静默失效
+    expect(typeof COMMENTS.lazyOnPosts).toBe('boolean');
   });
 });

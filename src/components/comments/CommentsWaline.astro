@@ -1,0 +1,65 @@
+---
+import NoScriptNotice from './NoScriptNotice.astro';
+
+interface Props {
+  config: { serverURL: string };
+  /** 评论线路径键，由 Comments.astro 用 normalizeCommentPath 算出 */
+  path: string;
+  lazy: boolean;
+}
+const { config, path, lazy } = Astro.props;
+
+// 版本锁在 v3 大版本。Waline 的 CSS 变量名是 comments.css 里那张映射表的依据，
+// 跨大版本可能改名，升级时要回去核对。
+const WALINE_CSS = 'https://unpkg.com/@waline/client@v3/dist/waline.css';
+const WALINE_JS = 'https://unpkg.com/@waline/client@v3/dist/waline.js';
+---
+
+<section class="comments" aria-label="评论">
+  <div id="waline-mount" class="comments-mount"></div>
+  <NoScriptNotice />
+</section>
+
+<script is:inline define:vars={{ WALINE_CSS, WALINE_JS, serverURL: config.serverURL, path, lazy }}>
+  (function () {
+    const host = document.getElementById('waline-mount');
+    if (!host) return;
+
+    let loaded = false;
+    function load() {
+      if (loaded) return;
+      loaded = true;
+
+      // 样式也放到 load() 里注入，懒加载时才不会白拉一个请求
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = WALINE_CSS;
+      // 必须插到本站第一张样式表**之前**，不能用 appendChild。
+      // waline.css 里有一整块无条件的 :root 浅色默认值（--waline-bg-color:#fff 等），
+      // 与 comments.css 里的令牌映射同为 :root、权重相同（0,1,0）——权重打平时后来者胜。
+      // appendChild 会让 Waline 排在后面，于是它把整片映射盖掉，浅色深色一起失效。
+      // 查 style 也查 link：Astro 的 inlineStylesheets:'auto' 可能把本站 CSS 内联成 <style>。
+      const firstSheet = document.head.querySelector('link[rel="stylesheet"], style');
+      if (firstSheet) document.head.insertBefore(link, firstSheet);
+      else document.head.appendChild(link);
+
+      // Waline 客户端是 ES module，用动态 import 加载
+      import(WALINE_JS).then(function (mod) {
+        mod.init({
+          el: '#waline-mount',
+          serverURL: serverURL,
+          path: path,
+          lang: 'zh-CN',
+          // 刻意不传 dark：它会注入
+          // html[data-theme="dark"] { --waline-bg-color: #1e1e1e; ... } 一整组硬编码值，
+          // 权重高于 comments.css 里写在 :root 的映射，深色下会把映射整片盖掉。
+          // 映射目标（--card / --text / --border）本身已跟着 data-theme 翻，
+          // 深色是自动跟上的，传 dark 只会打架。
+        });
+      });
+    }
+
+    if (lazy && window.__commentsWhenNear) window.__commentsWhenNear(host, load);
+    else load();
+  })();
+</script>

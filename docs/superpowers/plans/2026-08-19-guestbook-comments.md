@@ -40,18 +40,19 @@
 
 | 文件 | 责任 |
 |---|---|
-| `src/lib/comments.ts` | **新建。** `normalizeCommentPath()` 纯函数——评论线路径键归一化 |
-| `src/lib/comments.test.ts` | **新建。** 上者的守卫 |
-| `src/consts.ts` | **改。** `COMMENTS` 扩到四档 + `lazyOnPosts` |
-| `src/consts.test.ts` | **改。** provider 取值与必填字段守卫 |
-| `src/components/comments/ContactLinks.astro` | **新建。** 邮件 / 开 Issue 两个链接，全站唯一一份，唯一读 `SOCIAL` 的地方 |
-| `src/components/comments/CommentsFallback.astro` | **新建。** `provider='none'` 的卡片 |
-| `src/components/comments/CommentsGiscus.astro` | **新建。** giscus 挂载 + 主题同步 |
-| `src/components/comments/CommentsTwikoo.astro` | **新建。** Twikoo 挂载 |
-| `src/components/comments/CommentsWaline.astro` | **新建。** Waline 挂载 |
-| `src/components/Comments.astro` | **重写。** 纯分发器，唯一读 `COMMENTS.provider` 的地方 |
-| `src/styles/comments.css` | **新建。** 三方 widget → 本站令牌的映射 |
-| `src/styles/global.css` | **改。** 引入 `comments.css` |
+| `src/lib/comments.ts` | **新建（T1）+ 追加（T2）。** `normalizeCommentPath()` 路径键归一化、`missingCommentFields()` 必填字段校验，两个纯函数 |
+| `src/lib/comments.test.ts` | **新建（T1）+ 追加（T2）。** 上两者的守卫 |
+| `src/consts.ts` | **改（T2）。** `COMMENTS` 扩到四档 + `lazyOnPosts` |
+| `src/consts.test.ts` | **改（T2）。** provider 取值 + 把 `missingCommentFields` 浇到真实配置上 |
+| `src/components/comments/ContactLinks.astro` | **新建（T3）。** 邮件 / 开 Issue 两个链接，全站唯一一份，唯一读 `SOCIAL` 的地方 |
+| `src/components/comments/CommentsFallback.astro` | **新建（T3）。** `provider='none'` 的卡片 |
+| `src/components/comments/NoScriptNotice.astro` | **新建（T4）。** `<noscript>` 提示 + `ContactLinks`，三个 provider 共用 |
+| `src/components/comments/CommentsGiscus.astro` | **新建（T4）。** giscus 挂载 + 主题同步 |
+| `src/components/comments/CommentsTwikoo.astro` | **新建（T5）。** Twikoo 挂载 |
+| `src/components/comments/CommentsWaline.astro` | **新建（T6）。** Waline 挂载 |
+| `src/components/Comments.astro` | **重写（T3/4/5/6/8 逐步）。** 纯分发器，唯一读 `COMMENTS.provider` 的地方 |
+| `src/styles/comments.css` | **新建（T3：共享外壳）+ 追加（T4：`.comments-mount`；T7：三方换肤）** |
+| `src/styles/global.css` | **改（T3）。** 引入 `comments.css` |
 | `src/pages/guestbook.astro` | **改。** 文案润色 + 留言须知 + `lazy={false}` |
 | `docs/comments-backend.md` | **新建。** Twikoo + CF Workers + D1/R2 部署文档 |
 | `README.md` | **改。** 目录结构与配置说明补留言相关条目 |
@@ -183,10 +184,12 @@ README）。全站链接写 /blog/xxx/，但 Astro 默认 directory 格式下两
 
 **Files:**
 - Modify: `src/consts.ts`（文件末尾的 `COMMENTS` 常量）
+- Modify: `src/lib/comments.ts`（追加 `missingCommentFields`，Task 1 已建好这个文件）
+- Test: `src/lib/comments.test.ts`（追加一个 describe 块）
 - Test: `src/consts.test.ts`（追加一个 describe 块）
 
 **Interfaces:**
-- Consumes: 无
+- Consumes: `src/lib/comments.ts`（Task 1 创建）
 - Produces:
   - `export type CommentProvider = 'none' | 'giscus' | 'twikoo' | 'waline'`
   - `COMMENTS.provider: CommentProvider`
@@ -194,24 +197,74 @@ README）。全站链接写 /blog/xxx/，但 Astro 默认 directory 格式下两
   - `COMMENTS.giscus: { repo: string; repoId: string; category: string; categoryId: string }`
   - `COMMENTS.twikoo: { envId: string; region: string }`
   - `COMMENTS.waline: { serverURL: string }`
+  - `missingCommentFields(cfg: CommentsConfigLike): string[]` —— 返回当前启用的 provider 缺失的必填字段名
 
 后续所有 Task 都按这些字段名取值，不要改名。
 
+**为什么校验逻辑要抽成纯函数：** 直接在 `consts.test.ts` 里对真实配置写断言，会得到一个恒真式——交付时 `provider` 是 `'none'`，任何「必填字段非空」的判断都走不到。护栏必须能用造出来的配置证明自己有牙齿：`provider='twikoo'` 且 `envId` 为空时它得真的报出 `envId`。所以判定逻辑放进 `src/lib/comments.ts`（本仓库的惯例是纯逻辑进 `lib/` 并被 Vitest 覆盖），`consts.test.ts` 只负责把它浇到真实配置上。
+
 - [ ] **Step 1: 写失败测试**
 
-在 `src/consts.test.ts` 的 import 块加入 `COMMENTS`，并在文件末尾追加：
+**1a.** 在 `src/lib/comments.test.ts` 末尾追加（import 行改为 `import { normalizeCommentPath, missingCommentFields } from './comments';`）：
+
+```ts
+describe('missingCommentFields', () => {
+  // 这一组全部用造出来的配置，不碰真实的 COMMENTS——
+  // 真实配置交付时是 provider='none'，拿它测「必填字段缺失」永远走不到分支，
+  // 那样的测试恒真、等于没写。
+  it("provider='none' 时三组全空也不算缺失", () => {
+    expect(
+      missingCommentFields({ provider: 'none', giscus: {}, twikoo: {}, waline: {} })
+    ).toEqual([]);
+  });
+
+  it("provider='twikoo' 且 envId 为空时报出 envId", () => {
+    expect(
+      missingCommentFields({ provider: 'twikoo', twikoo: { envId: '', region: '' } })
+    ).toEqual(['envId']);
+  });
+
+  it('只校验启用的那档，未启用的留空不报', () => {
+    // 这条是护栏的关键行为：twikoo 填齐了就该放行，
+    // 不能因为 waline / giscus 那两组还空着而误报
+    expect(
+      missingCommentFields({
+        provider: 'twikoo',
+        twikoo: { envId: 'https://x.workers.dev', region: '' },
+        waline: { serverURL: '' },
+        giscus: { repo: '', repoId: '', category: '', categoryId: '' },
+      })
+    ).toEqual([]);
+  });
+
+  it('多个字段缺失时全部报出', () => {
+    expect(
+      missingCommentFields({
+        provider: 'giscus',
+        giscus: { repo: 'a/b', repoId: '', category: 'General', categoryId: '' },
+      })
+    ).toEqual(['repoId', 'categoryId']);
+  });
+
+  it('只有空白字符也算缺失', () => {
+    // 复制粘贴时很容易留下一个空格，视觉上「填了」但实际是空的
+    expect(
+      missingCommentFields({ provider: 'waline', waline: { serverURL: '   ' } })
+    ).toEqual(['serverURL']);
+  });
+
+  it('配置组整个缺失时报出该档全部必填字段', () => {
+    // 手改 consts.ts 时把整个 waline: {} 块删掉，不该抛异常而应报缺失
+    expect(missingCommentFields({ provider: 'waline' })).toEqual(['serverURL']);
+  });
+});
+```
+
+**1b.** 在 `src/consts.test.ts` 的 import 块加入 `COMMENTS`，另从 `./lib/comments` import `missingCommentFields`，并在文件末尾追加：
 
 ```ts
 describe('评论系统配置', () => {
   const PROVIDERS = ['none', 'giscus', 'twikoo', 'waline'];
-
-  // 每档 provider 的必填字段。填一半就上线是最危险的情形：
-  // 静态站构建不会报错，页面上只是一块空白区域，只有真人打开才会发现。
-  const REQUIRED: Record<string, string[]> = {
-    giscus: ['repo', 'repoId', 'category', 'categoryId'],
-    twikoo: ['envId'],
-    waline: ['serverURL'],
-  };
 
   it('provider 只能是四档之一', () => {
     // 写错不会报错：分发器四个分支全不命中，评论区静默消失
@@ -226,25 +279,15 @@ describe('评论系统配置', () => {
     }
   });
 
-  it('启用的 provider 必填字段不能为空', () => {
-    // 先取到局部 const 再判断，TS 才能把类型收窄掉 'none'——
-    // 直接写 COMMENTS.provider 是可变属性，编辑器里会报「不能用它索引」
-    const provider = COMMENTS.provider;
-    if (provider === 'none') return;
-    const group = COMMENTS[provider] as Record<string, string>;
-    for (const key of REQUIRED[provider]) {
-      expect(
-        group[key]?.trim(),
-        `provider 已设为 ${provider}，但 COMMENTS.${provider}.${key} 是空的`
-      ).not.toBe('');
-    }
-  });
-
-  it('未启用的 provider 允许留空', () => {
-    // 反向确认上一条只管当前启用的那档，不会因为另外两档没填而误报。
-    // 交付时 provider='none'，所以这条实际走的是前半个分支。
-    const provider = COMMENTS.provider;
-    expect(provider === 'none' || REQUIRED[provider].length > 0).toBe(true);
+  it('启用的 provider 没有缺失的必填字段', () => {
+    // 判定逻辑在 lib/comments.ts，那边用造数据证明过它真的会报缺失；
+    // 这里只负责把它浇到真实配置上。填一半就上线是最危险的情形：
+    // 静态站构建不报错，页面上只是一块空白，只有真人打开才发现。
+    const missing = missingCommentFields(COMMENTS);
+    expect(
+      missing,
+      `provider 已设为 ${COMMENTS.provider}，但这些必填字段是空的：${missing.join(', ')}`
+    ).toEqual([]);
   });
 
   it('lazyOnPosts 是布尔值', () => {
@@ -258,12 +301,48 @@ describe('评论系统配置', () => {
 - [ ] **Step 2: 跑测试确认失败**
 
 ```bash
-npx vitest run src/consts.test.ts
+npx vitest run src/lib/comments.test.ts src/consts.test.ts
 ```
 
-Expected: FAIL —— `COMMENTS.twikoo 不存在` 与 `lazyOnPosts 是布尔值` 两条失败（当前 `COMMENTS` 只有 `provider` 与 `giscus`）
+Expected: 两个文件都 FAIL ——
+- `comments.test.ts` 报 `missingCommentFields is not a function`（函数还没写）
+- `consts.test.ts` 报 `COMMENTS.twikoo 不存在` 与 `lazyOnPosts 是布尔值`（当前 `COMMENTS` 只有 `provider` 与 `giscus`）
 
-- [ ] **Step 3: 改实现**
+- [ ] **Step 3a: 在 `src/lib/comments.ts` 末尾追加校验函数**
+
+```ts
+/** 各档 provider 的必填字段。这是全站唯一一份，consts.test.ts 不再自己抄一遍。 */
+const REQUIRED_FIELDS: Record<string, string[]> = {
+  giscus: ['repo', 'repoId', 'category', 'categoryId'],
+  twikoo: ['envId'],
+  waline: ['serverURL'],
+};
+
+/** COMMENTS 的最小结构约束。写得松是刻意的——测试要能传造出来的残缺配置进来。 */
+export type CommentsConfigLike = {
+  provider: string;
+  [group: string]: unknown;
+};
+
+/**
+ * 返回当前启用的 provider 缺失的必填字段名。
+ * provider='none'、或该档全部填齐时返回空数组。
+ *
+ * 只看启用的那一档：未启用的 provider 允许留空，否则想切换就得先把三档全填上。
+ * 空白字符按缺失处理——复制粘贴很容易留个空格，视觉上「填了」但实际是空的。
+ */
+export function missingCommentFields(cfg: CommentsConfigLike): string[] {
+  const required = REQUIRED_FIELDS[cfg.provider];
+  if (!required) return []; // 'none'，或将来新增但还没登记必填字段的档
+  const group = (cfg[cfg.provider] ?? {}) as Record<string, unknown>;
+  return required.filter((key) => {
+    const value = group[key];
+    return typeof value !== 'string' || value.trim() === '';
+  });
+}
+```
+
+- [ ] **Step 3b: 改 `src/consts.ts`**
 
 把 `src/consts.ts` 末尾的 `COMMENTS` 整块替换为：
 
@@ -311,10 +390,12 @@ export const COMMENTS = {
 - [ ] **Step 4: 跑测试确认通过**
 
 ```bash
-npx vitest run src/consts.test.ts
+npx vitest run src/lib/comments.test.ts src/consts.test.ts
 ```
 
-Expected: PASS，17 tests（原 12 + 新增 5）
+Expected: 两个文件都 PASS ——
+- `comments.test.ts` 12 tests（Task 1 的 6 + 本任务的 6）
+- `consts.test.ts` 16 tests（原 12 + 本任务的 4）
 
 - [ ] **Step 5: 构建确认没打破现状**
 
@@ -327,12 +408,18 @@ Expected: `30 page(s) built`，零报错。现有 `Comments.astro` 仍读 `COMME
 - [ ] **Step 6: 提交**
 
 ```bash
-git add src/consts.ts src/consts.test.ts
+git add src/consts.ts src/consts.test.ts src/lib/comments.ts src/lib/comments.test.ts
 git commit -m "feat: COMMENTS 配置扩到四档并加必填字段守卫
 
 provider 扩为 none/giscus/twikoo/waline，新增 lazyOnPosts。
 守卫拦的是「填一半就上线」：静态站构建不报错，页面上只是一块空白，
-只有真人打开才发现。"
+只有真人打开才发现。
+
+判定逻辑抽成 lib/comments.ts 的 missingCommentFields 纯函数，用造出来的
+配置证明它真会报缺失。直接对真实配置断言会得到恒真式——交付时
+provider='none'，任何「必填非空」的判断都走不到分支。
+
+必填字段表只存一份（REQUIRED_FIELDS），consts.test.ts 不再自己抄一遍。"
 ```
 
 ---
@@ -342,15 +429,22 @@ provider 扩为 none/giscus/twikoo/waline，新增 lazyOnPosts。
 **Files:**
 - Create: `src/components/comments/ContactLinks.astro`
 - Create: `src/components/comments/CommentsFallback.astro`
+- Create: `src/styles/comments.css`（本任务只放共享外壳样式；Task 7 再往里追加三方换肤）
+- Modify: `src/styles/global.css`（加一行 `@import`）
 - Modify: `src/components/Comments.astro`（`'none'` 分支改为渲染 `CommentsFallback`）
 
 **Interfaces:**
 - Consumes: 无
 - Produces:
-  - `ContactLinks.astro` —— 无 props，渲染「发邮件」+「在 GitHub 上开 Issue」两个按钮。后续 Task 4/5/6 的 `<noscript>` 都用它
+  - `ContactLinks.astro` —— 无 props，渲染「发邮件」+「在 GitHub 上开 Issue」两个按钮。后续 Task 4/5/6 都用它
   - `CommentsFallback.astro` —— 无 props
+  - 全局类 `.comments`、`.comments.card`、`.comments-hint` —— 后续四个组件共用，各组件不再自带这几条规则
 
-**为什么抽：** 联系方式要出现在四个地方（fallback 卡 + 三个 provider 的 `<noscript>`）。复制四份的话改文案必然漏一个。同时那句「必须用 `SOCIAL.repo` 而不是 `SOCIAL.github`」的坑注释要跟着搬，别让它重新长出来。
+**为什么抽 `ContactLinks`：** 联系方式要出现在四个地方（fallback 卡 + 三个 provider 的 `<noscript>`）。复制四份的话改文案必然漏一个。同时那句「必须用 `SOCIAL.repo` 而不是 `SOCIAL.github`」的坑注释要跟着搬，别让它重新长出来。
+
+**为什么这个任务就建 `comments.css`：** 评论区的外壳样式（`.comments` 的上边距、提示小字）会被四个组件共用。如果留在各组件的 scoped `<style>` 里就是四份逐字重复。放到 Task 7 再建又会让本任务交付一张没样式的卡片，验收不了。所以共享外壳样式在这里落地，Task 7 只负责追加 Waline 变量映射与 Twikoo 类名覆盖。
+
+**类名必须带 `comments-` 前缀：** 全局化的提示小字**不能**叫 `.hint`——`src/pages/404.astro` 已经有一个自己的 `.hint`，全局规则会漏进 404 页把它改样。同理 fallback 卡的 `.title` 与 `archive.astro` 的 `.title` 撞名，**所以 `.title` 不全局化**，它只有一个使用方、继续留在 `CommentsFallback` 的 scoped `<style>` 里（一份不算重复）。这个坑在本仓库出现过一次（`.count` 与分类徽章撞名），别再踩。
 
 - [ ] **Step 1: 建 `ContactLinks.astro`**
 
@@ -403,7 +497,56 @@ const issuesUrl = SOCIAL.repo ? `${SOCIAL.repo.replace(/\/$/, '')}/issues` : '';
 </style>
 ```
 
-- [ ] **Step 2: 建 `CommentsFallback.astro`**
+- [ ] **Step 2: 建 `comments.css` 并在 `global.css` 里引入**
+
+创建 `src/styles/comments.css`：
+
+```css
+/* ===== 评论区样式 =====
+   本文件分两部分：
+   1. 共享外壳——四个 provider 组件（fallback / giscus / twikoo / waline）共用，
+      写在这里而不是各组件的 scoped <style> 里，否则就是四份逐字重复。
+   2. 三方 widget 换肤——Task 7 追加，见本文件后半。
+
+   类名一律带 comments- 前缀。不叫 .hint 是因为 src/pages/404.astro 已经有一个
+   自己的 .hint，全局规则会漏进那一页把它改样；同理 .title 与 archive.astro 撞名，
+   所以 fallback 卡的标题类不全局化、留在组件内。 */
+
+.comments {
+  margin-top: 48px;
+}
+
+/* fallback 卡额外叠了 .card 工具类，需要内边距；其他 provider 是裸挂载区，不要 */
+.comments.card {
+  padding: 24px;
+}
+
+/* 评论区里的提示小字：fallback 卡的说明、各 provider 的 noscript 提示 */
+.comments-hint {
+  margin: 0 0 18px;
+  color: var(--text-soft);
+  font-size: 0.93rem;
+}
+```
+
+把 `src/styles/global.css` 整个文件替换为：
+
+```css
+/* 样式入口。具体规则按职责拆到下面几个文件：
+   tokens   = CSS 变量（配色、尺寸、字体）
+   base     = 重置、排版、工具类、.prose
+   layout   = 页面网格、头部、页脚、响应式断点
+   motion   = 入场动画与 prefers-reduced-motion 降级
+   comments = 评论区外壳与三方 widget 换肤（放最后，要盖在三方样式之上）
+   组件私有样式写在各自 .astro 的 <style> 里（Astro 自动 scoped）。 */
+@import './tokens.css';
+@import './base.css';
+@import './layout.css';
+@import './motion.css';
+@import './comments.css';
+```
+
+- [ ] **Step 3: 建 `CommentsFallback.astro`**
 
 创建 `src/components/comments/CommentsFallback.astro`：
 
@@ -414,33 +557,27 @@ import ContactLinks from './ContactLinks.astro';
 
 <section class="comments card" aria-label="交流">
   <p class="title">想聊两句？</p>
-  <p class="hint">
+  <p class="comments-hint">
     留言功能正在接，暂时先走下面这两条。有问题、有想法，或者发现了什么错误，欢迎直接找我：
   </p>
   <ContactLinks />
 </section>
 
 <style>
-  .comments {
-    margin-top: 48px;
-    padding: 24px;
-  }
+  /* .comments / .comments.card / .comments-hint 在 src/styles/comments.css 里，
+     四个 provider 组件共用。这里只留本卡片独有的标题样式——
+     刻意不叫全局类：archive.astro 也有个 .title，全局化会撞。 */
   .title {
     margin: 0 0 8px;
     font-weight: 700;
     font-size: 1.1rem;
   }
-  .hint {
-    margin: 0 0 18px;
-    color: var(--text-soft);
-    font-size: 0.93rem;
-  }
 </style>
 ```
 
-- [ ] **Step 3: 让 `Comments.astro` 的 `none` 分支用新组件**
+- [ ] **Step 4: 让 `Comments.astro` 的 `none` 分支用新组件**
 
-把 `src/components/Comments.astro` 整个文件替换为（giscus 分支暂时原样保留，Task 4 再搬）：
+把 `src/components/Comments.astro` 整个文件替换为（giscus 分支暂时原样保留，Task 4 再搬；`.comments` 的样式已进 `comments.css`，这里不再带 `<style>`）：
 
 ```astro
 ---
@@ -468,15 +605,9 @@ import CommentsFallback from './comments/CommentsFallback.astro';
 ) : (
   <CommentsFallback />
 )}
-
-<style>
-  .comments {
-    margin-top: 48px;
-  }
-</style>
 ```
 
-- [ ] **Step 4: 构建并断言产物**
+- [ ] **Step 5: 构建并断言产物**
 
 ```bash
 npm run build
@@ -484,7 +615,9 @@ npm run build
 
 Expected: `30 page(s) built`，零报错
 
-> **产物断言的计数方式**：Astro 默认 `compressHTML: true`，产物 HTML 基本压成一行，所以 `grep -c` 数的是**行数**（命中就是 1），不是出现次数。要数次数必须用 `grep -o … | wc -l`。下面凡是关心「出现几次」的地方都用后者，只关心「有没有」的地方才用 `grep -c`。
+> **产物断言的计数方式**：`grep -c` 数的是**命中的行数**，不是出现次数——同一行里出现三次也只记 1。要数次数必须用 `grep -o … | wc -l`。下面凡是关心「出现几次」的地方都用后者，只关心「有没有」的地方才用 `grep -c`。
+>
+> （Astro 默认 `compressHTML: true`，但它只压标签之间的空白，**并不会把整页压成一行**——实测留言页产物 181 行。所以两个命令给出的数字通常不同但都不是 1，别拿其中一个去反推另一个。）
 
 ```bash
 grep -o "在 GitHub 上开 Issue" dist/guestbook/index.html | wc -l
@@ -499,28 +632,51 @@ grep -o 'href="https://github.com/zh-qdwl/zh-blog/issues"' dist/guestbook/index.
 Expected: 输出该 href 一次。**关键断言**——证明用的是 `SOCIAL.repo` 而不是 `SOCIAL.github`（后者会拼成 `github.com/zh-qdwl/issues`）
 
 ```bash
-grep -o 'href="mailto:[^"]*"' dist/guestbook/index.html
+grep -o 'href="mailto:[^"]*"' dist/guestbook/index.html | wc -l
 ```
 
-Expected: `href="mailto:1498690097@qq.com"`
+Expected: `2`。**注意不是 1**——`Footer.astro` 每页都独立渲染一个 mailto 链接，与本组件无关。只想看本组件那一个就用 `grep -o 'class="btn" href="mailto:[^"]*"' dist/guestbook/index.html | wc -l`，那个才是 `1`。
 
-- [ ] **Step 5: 跑全量测试**
+```bash
+grep -l "comments-hint" dist/_astro/*.css dist/guestbook/index.html
+```
+
+Expected: 两个都列出——CSS 规则进了样式产物，`class="comments-hint"` 进了页面。（Astro 的 `inlineStylesheets: 'auto'` 会让样式在外链与内联之间漂移，所以搜两处。）
+
+```bash
+grep -c 'class="hint"' dist/404.html
+```
+
+Expected: `1`。**关键断言**——404 页自己的 `.hint` 还在、没被改名，证明全局化没有波及它
+
+```bash
+grep -c "comments-hint" dist/404.html
+```
+
+Expected: `0`。404 页不该出现评论区的类名
+
+- [ ] **Step 6: 跑全量测试**
 
 ```bash
 npm test
 ```
 
-Expected: 107 tests passed（Task 1 加 6 + Task 2 加 5，此后各任务不再变）
+Expected: 112 tests passed（Task 1 加 6 + Task 2 加 10，此后各任务不再变）
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 7: 提交**
 
 ```bash
-git add src/components/comments/ContactLinks.astro src/components/comments/CommentsFallback.astro src/components/Comments.astro
-git commit -m "refactor: 联系方式抽成 ContactLinks，fallback 卡独立成组件
+git add src/components/comments/ContactLinks.astro src/components/comments/CommentsFallback.astro src/components/Comments.astro src/styles/comments.css src/styles/global.css
+git commit -m "refactor: 抽出 ContactLinks 与 fallback 卡，共享样式进 comments.css
 
 联系方式要出现在四处（fallback 卡 + 三个 provider 的 noscript），
 复制四份改文案必然漏一个。「必须用 SOCIAL.repo 而不是 SOCIAL.github，
 后者拼出来是死链」那句坑注释跟着搬过去。
+
+评论区外壳样式（.comments / .comments-hint）进 comments.css，四个 provider
+组件共用，避免四份逐字重复。类名带 comments- 前缀是必须的：404 页已有自己的
+.hint，全局化会漏进去改它的样；archive.astro 也有 .title，所以 fallback 卡的
+标题类不全局化、留在组件内。
 
 fallback 卡文案补上「留言功能正在接」。"
 ```
@@ -530,28 +686,63 @@ fallback 卡文案补上「留言功能正在接」。"
 ### Task 4: `CommentsGiscus.astro` —— 抽出并接上主题同步
 
 **Files:**
+- Create: `src/components/comments/NoScriptNotice.astro`
 - Create: `src/components/comments/CommentsGiscus.astro`
+- Modify: `src/styles/comments.css`（追加 `.comments-mount`）
 - Modify: `src/components/Comments.astro`（giscus 分支改为渲染新组件）
 
 **Interfaces:**
-- Consumes: `ContactLinks.astro`（Task 3）
-- Produces: `CommentsGiscus.astro`，props：
-  ```ts
-  interface Props {
-    config: { repo: string; repoId: string; category: string; categoryId: string };
-    lazy: boolean;
-  }
-  ```
+- Consumes: `ContactLinks.astro`、全局类 `.comments` / `.comments-hint`（均来自 Task 3）
+- Produces:
+  - `NoScriptNotice.astro` —— 无 props。`<noscript>` 里的那句提示 + `ContactLinks`。Task 5/6 直接复用
+  - 全局类 `.comments-mount` —— 三个 provider 的挂载容器共用
+  - `CommentsGiscus.astro`，props：
+    ```ts
+    interface Props {
+      config: { repo: string; repoId: string; category: string; categoryId: string };
+      lazy: boolean;
+    }
+    ```
+
+**为什么要 `NoScriptNotice`：** 三个 provider 的 `<noscript>` 内容完全一样。抽出来的理由和 Task 3 抽 `ContactLinks` 是同一条——复制三份，改那句提示文案就得改三处，必然漏。它在这个任务出现是因为 giscus 是第一个用到它的 provider；Task 5/6 只需写一行 `<NoScriptNotice />`。
 
 **为什么要主题同步：** giscus 是 iframe，`comments.css` 里的 CSS 变量透不进去。只能在本站主题切换后用 `postMessage` 通知它换主题。
 
-- [ ] **Step 1: 建组件**
+- [ ] **Step 1a: 建 `NoScriptNotice.astro` 并给 `comments.css` 加挂载容器样式**
+
+创建 `src/components/comments/NoScriptNotice.astro`：
+
+```astro
+---
+import ContactLinks from './ContactLinks.astro';
+
+// 三个 provider 的 <noscript> 内容一模一样，抽在这里。
+// 理由同 ContactLinks：复制三份，改这句提示就得改三处，必然漏一个。
+---
+
+<noscript>
+  <p class="comments-hint">评论区需要 JavaScript。也可以直接找我：</p>
+  <ContactLinks />
+</noscript>
+```
+
+在 `src/styles/comments.css` 的共享外壳部分末尾（`.comments-hint` 规则之后、Task 7 追加的三方换肤之前）加入：
+
+```css
+/* 三方 widget 的挂载容器。给个最小高度，懒加载注入 widget 时才不会把下方内容
+   猛地顶一下（CLS）。190px 约等于一个空表单的高度，宁可略矮也不要留一大片空白。 */
+.comments-mount {
+  min-height: 190px;
+}
+```
+
+- [ ] **Step 1b: 建 `CommentsGiscus.astro`**
 
 创建 `src/components/comments/CommentsGiscus.astro`：
 
 ```astro
 ---
-import ContactLinks from './ContactLinks.astro';
+import NoScriptNotice from './NoScriptNotice.astro';
 
 interface Props {
   config: { repo: string; repoId: string; category: string; categoryId: string };
@@ -562,10 +753,7 @@ const { config, lazy } = Astro.props;
 
 <section class="comments" aria-label="评论">
   <div id="giscus-mount" class="comments-mount"></div>
-  <noscript>
-    <p class="hint">评论区需要 JavaScript。也可以直接找我：</p>
-    <ContactLinks />
-  </noscript>
+  <NoScriptNotice />
 </section>
 
 <script
@@ -624,18 +812,9 @@ const { config, lazy } = Astro.props;
     }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   })();
 </script>
-
-<style>
-  .comments {
-    margin-top: 48px;
-  }
-  .hint {
-    margin: 0 0 18px;
-    color: var(--text-soft);
-    font-size: 0.93rem;
-  }
-</style>
 ```
+
+> 本组件**不带 `<style>`**。`.comments` / `.comments-mount` / `.comments-hint` 都在 `src/styles/comments.css` 里，四个 provider 组件共用——各自再写一份就是逐字重复。
 
 - [ ] **Step 2: 分发器改用新组件**
 
@@ -699,7 +878,7 @@ git checkout src/consts.ts
 npm run build && npm test
 ```
 
-Expected: `30 page(s) built`；107 tests passed。`git diff src/consts.ts` 应为空。
+Expected: `30 page(s) built`；112 tests passed。`git diff src/consts.ts` 应为空。
 
 > **注意**：`git checkout src/consts.ts` 会丢掉 `src/consts.ts` 的所有未提交改动。Task 2 已经提交过它，所以这里安全。若本地另有未提交的 `consts.ts` 改动，改用手工编辑回退。
 
@@ -725,7 +904,7 @@ Comments.astro 同时退化为纯分发器。"
 - Modify: `src/components/Comments.astro`（加 twikoo 分支 + 传 `path`）
 
 **Interfaces:**
-- Consumes: `ContactLinks.astro`（Task 3）、`normalizeCommentPath`（Task 1）
+- Consumes: `NoScriptNotice.astro`（Task 4）、`normalizeCommentPath`（Task 1）、全局类 `.comments` / `.comments-mount`（Task 3/4）
 - Produces: `CommentsTwikoo.astro`，props：
   ```ts
   interface Props {
@@ -741,7 +920,7 @@ Comments.astro 同时退化为纯分发器。"
 
 ```astro
 ---
-import ContactLinks from './ContactLinks.astro';
+import NoScriptNotice from './NoScriptNotice.astro';
 
 interface Props {
   config: { envId: string; region: string };
@@ -760,10 +939,7 @@ const cdn = `https://cdn.jsdelivr.net/npm/twikoo@${TWIKOO_VERSION}/dist/twikoo.m
 
 <section class="comments" aria-label="评论">
   <div id="twikoo-mount" class="comments-mount"></div>
-  <noscript>
-    <p class="hint">评论区需要 JavaScript。也可以直接找我：</p>
-    <ContactLinks />
-  </noscript>
+  <NoScriptNotice />
 </section>
 
 <script is:inline define:vars={{ cdn, envId: config.envId, region: config.region, path, lazy }}>
@@ -798,18 +974,9 @@ const cdn = `https://cdn.jsdelivr.net/npm/twikoo@${TWIKOO_VERSION}/dist/twikoo.m
     else load();
   })();
 </script>
-
-<style>
-  .comments {
-    margin-top: 48px;
-  }
-  .hint {
-    margin: 0 0 18px;
-    color: var(--text-soft);
-    font-size: 0.93rem;
-  }
-</style>
 ```
+
+> 本组件**不带 `<style>`**。`.comments` / `.comments-mount` / `.comments-hint` 都在 `src/styles/comments.css` 里，四个 provider 组件共用——各自再写一份就是逐字重复。
 
 - [ ] **Step 2: 分发器加 twikoo 分支**
 
@@ -872,10 +1039,12 @@ grep -o 'const path = "/blog/tmux-guide/";' dist/blog/tmux-guide/index.html
 Expected: 输出一次。证明文章页各自拿到自己的路径键
 
 ```bash
-grep -c "location.pathname" dist/guestbook/index.html
+grep -cE "path:\s*location\.pathname" dist/guestbook/index.html
 ```
 
-Expected: `0`。**关键断言**——确认没有任何地方退回去读浏览器当前路径
+Expected: `0`。**关键断言**——确认没有任何地方退回去读浏览器当前路径。
+
+> **不要**改用 `grep -c "location.pathname"`：那样会得到 `1`，因为组件里那句解释性注释本身就写着 `location.pathname`，而 `is:inline` 脚本连注释一起原样进产物。断言必须只盯**可执行位置**，否则它会因为代码注释得清楚而失败——那是荒谬的激励。
 
 - [ ] **Step 4: 改回 `none` 并确认恢复**
 
@@ -884,7 +1053,7 @@ git checkout src/consts.ts
 npm run build && npm test
 ```
 
-Expected: `30 page(s) built`；107 tests passed；`git diff src/consts.ts` 为空
+Expected: `30 page(s) built`；112 tests passed；`git diff src/consts.ts` 为空
 
 - [ ] **Step 5: 提交**
 
@@ -910,7 +1079,7 @@ region 留空时不传这个键，避免 Vercel/Cloudflare 去连一个不存在
 - Modify: `src/components/Comments.astro`（加 waline 分支）
 
 **Interfaces:**
-- Consumes: `ContactLinks.astro`（Task 3）、`normalizeCommentPath`（Task 1，经分发器）
+- Consumes: `NoScriptNotice.astro`（Task 4）、`normalizeCommentPath`（Task 1，经分发器）、全局类 `.comments` / `.comments-mount`（Task 3/4）
 - Produces: `CommentsWaline.astro`，props：
   ```ts
   interface Props {
@@ -928,7 +1097,7 @@ region 留空时不传这个键，避免 Vercel/Cloudflare 去连一个不存在
 
 ```astro
 ---
-import ContactLinks from './ContactLinks.astro';
+import NoScriptNotice from './NoScriptNotice.astro';
 
 interface Props {
   config: { serverURL: string };
@@ -946,10 +1115,7 @@ const WALINE_JS = 'https://unpkg.com/@waline/client@v3/dist/waline.js';
 
 <section class="comments" aria-label="评论">
   <div id="waline-mount" class="comments-mount"></div>
-  <noscript>
-    <p class="hint">评论区需要 JavaScript。也可以直接找我：</p>
-    <ContactLinks />
-  </noscript>
+  <NoScriptNotice />
 </section>
 
 <script is:inline define:vars={{ WALINE_CSS, WALINE_JS, serverURL: config.serverURL, path, lazy }}>
@@ -966,7 +1132,14 @@ const WALINE_JS = 'https://unpkg.com/@waline/client@v3/dist/waline.js';
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = WALINE_CSS;
-      document.head.appendChild(link);
+      // 必须插到本站第一张样式表**之前**，不能用 appendChild。
+      // waline.css 里有一整块无条件的 :root 浅色默认值（--waline-bg-color:#fff 等），
+      // 与 comments.css 里的令牌映射同为 :root、权重相同（0,1,0）——权重打平时后来者胜。
+      // appendChild 会让 Waline 排在后面，于是它把整片映射盖掉，浅色深色一起失效。
+      // 查 style 也查 link：Astro 的 inlineStylesheets:'auto' 可能把本站 CSS 内联成 <style>。
+      const firstSheet = document.head.querySelector('link[rel="stylesheet"], style');
+      if (firstSheet) document.head.insertBefore(link, firstSheet);
+      else document.head.appendChild(link);
 
       // Waline 客户端是 ES module，用动态 import 加载
       import(WALINE_JS).then(function (mod) {
@@ -988,18 +1161,9 @@ const WALINE_JS = 'https://unpkg.com/@waline/client@v3/dist/waline.js';
     else load();
   })();
 </script>
-
-<style>
-  .comments {
-    margin-top: 48px;
-  }
-  .hint {
-    margin: 0 0 18px;
-    color: var(--text-soft);
-    font-size: 0.93rem;
-  }
-</style>
 ```
+
+> 本组件**不带 `<style>`**。`.comments` / `.comments-mount` / `.comments-hint` 都在 `src/styles/comments.css` 里，四个 provider 组件共用——各自再写一份就是逐字重复。
 
 - [ ] **Step 2: 分发器加 waline 分支**
 
@@ -1072,7 +1236,7 @@ git checkout src/consts.ts
 npm run build && npm test
 ```
 
-Expected: `30 page(s) built`；107 tests passed；`git diff src/consts.ts` 为空
+Expected: `30 page(s) built`；112 tests passed；`git diff src/consts.ts` 为空
 
 - [ ] **Step 5: 提交**
 
@@ -1092,33 +1256,26 @@ CSS 也放到 load() 里注入，懒加载时才不会白拉一个请求。"
 ### Task 7: `comments.css` —— 三方 widget 映射到本站令牌
 
 **Files:**
-- Create: `src/styles/comments.css`
-- Modify: `src/styles/global.css`（加一行 `@import`）
+- Modify: `src/styles/comments.css`（追加两段三方换肤；文件与 `global.css` 的引入已在 Task 3 完成，共享外壳样式与 `.comments-mount` 也已在 Task 3/4 落地——**本任务只追加，不重写已有内容**）
 
 **Interfaces:**
-- Consumes: 各 provider 组件渲染的 `.comments-mount` 容器与 widget 自身的类名
-- Produces: 无 JS 接口。给 `.comments-mount` 一个最小高度供 Task 8 的懒加载防抖
+- Consumes: widget 自身的类名与 CSS 变量
+- Produces: 无 JS 接口
 
 > **本任务有一半无法验收。** Waline 那段是逐个核对过官方 style 参考页的变量映射，可靠。**Twikoo 那段是盲写的**——它的 widget 要连上后端才渲染完整 DOM，后端未部署，看不到真实的 `.tk-*` / `.el-*` 结构。提交信息与文件头注释都必须写明这一点，不许当成做完了。
 
-- [ ] **Step 1: 建 `comments.css`**
+- [ ] **Step 1: 往 `comments.css` 末尾追加两段换肤**
 
-创建 `src/styles/comments.css`：
+在 `src/styles/comments.css` 现有内容（共享外壳 + `.comments-mount`）之后追加：
 
 ```css
-/* ===== 三方评论 widget 的外观映射 =====
+/* ===== 以下是三方 widget 的外观映射 =====
    目标是让接进来的评论区看着像本站的一部分，而不是一块补丁。
    两个 provider 的处境完全不同，分两段处理。
 
-   ⚠️ Twikoo 那一段（本文件后半）在写下时后端尚未部署，widget 渲染不出完整 DOM，
+   ⚠️ Twikoo 那一段（本文件末尾）在写下时后端尚未部署，widget 渲染不出完整 DOM，
       因此那些选择器是照官方文档与社区教程盲写的，可能对不上、也可能有遗漏。
       Worker 部署完成后必须回来对着真实 DOM 走一轮目视调整。 */
-
-/* 挂载容器：给个最小高度，懒加载注入 widget 时才不会把下方内容猛地顶一下（CLS）。
-   190px 约等于一个空表单的高度，宁可略矮也不要留一大片空白。 */
-.comments-mount {
-  min-height: 190px;
-}
 
 /* ===== Waline =====
    它暴露官方 CSS 变量，映射一遍就完事。变量名逐个核对过官方 style 参考页——
@@ -1128,8 +1285,21 @@ CSS 也放到 load() 里注入，懒加载时才不会白拉一个请求。"
    html[data-theme="dark"] { --waline-bg-color: #1e1e1e; ... } 一整组硬编码深色值，
    权重高于这里写在 :root 上的映射，深色下把映射整片盖掉。
    下面映射到的令牌（--card / --text / --border）本身已经跟着 data-theme 翻过一轮，
-   深色是自动跟上的。 */
-:root {
+   深色是自动跟上的。
+
+   为什么是 `:root, #waline-mount` 两个选择器、而不是只写 `:root`：
+   waline.css 自带一整块无条件的 :root 浅色默认值，与本块同权重（0,1,0），
+   打平时靠源码顺序决胜。CommentsWaline.astro 已用 insertBefore 把 Waline 的样式表
+   插到本站样式表之前来保证本块在后（那个保证由 Step 3b 的断言守着），
+   但那只覆盖 load() 执行时 <head> 里已有的节点——将来若有别的懒加载组件在更晚
+   append 一张样式表，同类问题会换个地方复现。
+   #waline-mount 是 ID 选择器（1,0,0），无条件压过任何 :root，与顺序无关，
+   为挂载区内的元素补上第二道保险。
+   两个选择器共用同一个声明块，所以变量表只有一份，不是抄两遍。
+   保留 :root 那一半是必要的：万一 Waline 把某些 UI（图片预览遮罩之类）挂到
+   #waline-mount 之外，那些元素继承不到挂载元素上的变量，只能靠 :root 兜住。 */
+:root,
+#waline-mount {
   --waline-font-size: 0.95rem;
   --waline-theme-color: var(--brand-strong);
   --waline-active-color: var(--brand);
@@ -1154,17 +1324,22 @@ CSS 也放到 load() 里注入，懒加载时才不会白拉一个请求。"
 
    范围刻意收窄到「不改就明显不像本站」的几处：容器背景、边框、输入框、按钮、
    链接色、次要文字。不做整体魔改——覆盖越多，升级时碎得越彻底。 */
-.twikoo {
-  --tk-radius: var(--radius);
-}
+/* 容器背景与文字：background 设为 transparent，不让 Twikoo 给自己的容器刷底色，
+   把背景交给页面本身——它原本要是没背景，这行就是空操作；要是有（大概率是白色），
+   这行就是深色模式下不会糊成一块亮板的关键。color 则让容器内文字跟本站正文令牌走，
+   不用 Twikoo 自带的默认灰。
 
-/* 容器与卡片底色 */
+   注意这里刻意**不猜**一个不透明底色。去掉一个不透明背景是安全动作，
+   编一个颜色不是——而这一段本来就是盲写的。 */
 .twikoo .tk-comments,
 .twikoo .tk-submit {
+  background: transparent !important;
   color: var(--text);
 }
 
-/* 输入框：Twikoo 用的是 element-plus，类名带 el- 前缀 */
+/* 输入框：Twikoo 用的是 element-ui（Vue 2 那一代），类名带 el- 前缀。
+   别写成 element-plus——那是 Vue 3 的后继项目，Twikoo 并没有用它，
+   两者部分类名不同，认错了会照着错的文档去找选择器。 */
 .twikoo .el-textarea__inner,
 .twikoo .el-input__inner {
   background: var(--card) !important;
@@ -1206,24 +1381,13 @@ CSS 也放到 load() 里注入，懒加载时才不会白拉一个请求。"
 }
 ```
 
-- [ ] **Step 2: 在 `global.css` 里引入**
+- [ ] **Step 2: 确认没有动到 Task 3/4 已经落地的部分**
 
-把 `src/styles/global.css` 整个文件替换为：
-
-```css
-/* 样式入口。具体规则按职责拆到下面几个文件：
-   tokens   = CSS 变量（配色、尺寸、字体）
-   base     = 重置、排版、工具类、.prose
-   layout   = 页面网格、头部、页脚、响应式断点
-   motion   = 入场动画与 prefers-reduced-motion 降级
-   comments = 三方评论 widget 的外观映射（放最后，要盖在三方样式之上）
-   组件私有样式写在各自 .astro 的 <style> 里（Astro 自动 scoped）。 */
-@import './tokens.css';
-@import './base.css';
-@import './layout.css';
-@import './motion.css';
-@import './comments.css';
+```bash
+git diff --stat src/styles/
 ```
+
+Expected: 只有 `src/styles/comments.css` 一个文件有改动，且是纯新增行（`git diff src/styles/comments.css` 里不应出现以 `-` 开头的行，`global.css` 不应出现）。本任务只追加换肤，共享外壳与 `@import` 在 Task 3/4 已经就位。
 
 - [ ] **Step 3: 构建并断言产物**
 
@@ -1234,16 +1398,34 @@ npm run build
 Expected: `30 page(s) built`，零报错
 
 ```bash
-grep -c "waline-theme-color" dist/_astro/*.css
+grep -l "waline-theme-color" dist/_astro/*.css dist/guestbook/index.html
 ```
 
-Expected: 输出一个非零计数（映射进了产物 CSS）
+Expected: 至少列出一个文件
 
 ```bash
-grep -o "comments-mount" dist/_astro/*.css | head -1
+grep -l "comments-mount" dist/_astro/*.css dist/guestbook/index.html
 ```
 
-Expected: 输出 `comments-mount`
+Expected: 至少列出一个文件
+
+- [ ] **Step 3b: 验证级联真的是本站映射胜出**
+
+Waline 的 `waline.css` 自带一整块无条件的 `:root` 浅色默认值，与本文件的映射**同为 `:root`、权重相同**（0,1,0）。权重打平时由源码顺序决定，所以映射能不能生效取决于两张样式表谁在后面。`CommentsWaline.astro` 已经用 `insertBefore` 把 Waline 的样式表插到本站第一张样式表之前来保证这一点（Task 6 的修复），本步骤是复查那个保证还在：
+
+```bash
+grep -c "insertBefore" src/components/comments/CommentsWaline.astro
+```
+
+Expected: `1`。**关键断言**——如果有人把它改回 `appendChild`，本文件这整张映射表会静默失效（浅色深色一起），页面上看不出任何报错。
+
+```bash
+grep -c "appendChild(link)" src/components/comments/CommentsWaline.astro
+```
+
+Expected: `1`（只剩 `head` 里一张样式表都没有时的兜底分支）。
+
+> **为什么两处都搜**：Astro 的 `build.inlineStylesheets` 默认是 `'auto'`——小于阈值的样式表会被内联进 `<head>` 的 `<style>`，大于阈值的才输出成 `dist/_astro/*.css` 外链。本仓库当前是外链形态（`dist/_astro/about.*.css` 里能查到 `--brand-strong`），但这个分界会随 CSS 体积漂移。**只搜 `dist/_astro/*.css` 已经在前三轮造成过三次假失败**（见 `.superpowers/sdd/progress.md` 里记的同类计划缺陷），所以这里一律两处都搜。
 
 - [ ] **Step 4: 确认变量名没写错**
 
@@ -1276,12 +1458,12 @@ Expected: 输出下面这 14 个，逐个与官方 style 参考页核对。**特
 npm test
 ```
 
-Expected: 107 tests passed
+Expected: 112 tests passed
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add src/styles/comments.css src/styles/global.css
+git add src/styles/comments.css
 git commit -m "feat: 三方评论 widget 的外观映射
 
 Waline 段是逐个核对官方 style 参考页的变量映射，可靠；刻意不启用它的
@@ -1387,29 +1569,31 @@ npm run build
 Expected: `30 page(s) built`，零报错
 
 ```bash
-grep -c "__commentsWhenNear" dist/blog/tmux-guide/index.html
+grep -o "window.__commentsWhenNear = function" dist/blog/tmux-guide/index.html | wc -l
 ```
 
-Expected: 非零。文章页有 helper（`lazyOnPosts` 默认 `true`）
+Expected: `1`。文章页有 helper（`lazyOnPosts` 默认 `true`）。
+
+> **必须只数 helper 的定义，不能裸 grep `__commentsWhenNear`**：三个 provider 组件里那句 `if (lazy && window.__commentsWhenNear)` 无论 `lazy` 真假都会原样进产物，所以裸串在关掉懒加载的页面上照样出现 2 次。`rootMargin` 也只存在于 helper 里，可以作为同样可靠的判据。
 
 ```bash
-grep -c "__commentsWhenNear" dist/guestbook/index.html
+grep -o "window.__commentsWhenNear = function" dist/guestbook/index.html | wc -l
 ```
 
-Expected: **非零**。留言页此刻还没传 `lazy={false}`（那是 Task 9 的事），所以它走的是默认值 `COMMENTS.lazyOnPosts = true`，helper 照样会输出。这是本阶段的正确状态，不是缺陷——Task 9 Step 3 会把它翻成 `0` 并复查。
+Expected: `1`。留言页此刻还没传 `lazy={false}`（那是 Task 9 的事），所以它走的是默认值 `COMMENTS.lazyOnPosts = true`，helper 照样会输出。这是本阶段的正确状态，不是缺陷——Task 9 Step 3 会把它翻成 `0` 并复查。
 
 ```bash
-grep -c "rootMargin" dist/blog/tmux-guide/index.html
+grep -o "rootMargin" dist/blog/tmux-guide/index.html | wc -l
 ```
 
-Expected: 非零
+Expected: `3`
 
 - [ ] **Step 3: 改回 `none` 并确认 helper 不输出**
 
 ```bash
 git checkout src/consts.ts
 npm run build
-grep -c "__commentsWhenNear" dist/blog/tmux-guide/index.html
+grep -o "window.__commentsWhenNear = function" dist/blog/tmux-guide/index.html | wc -l
 ```
 
 Expected: `0`。provider='none' 时不该白搭一段脚本
@@ -1420,7 +1604,7 @@ Expected: `0`。provider='none' 时不该白搭一段脚本
 npm test
 ```
 
-Expected: 107 tests passed
+Expected: 112 tests passed
 
 - [ ] **Step 5: 提交**
 
@@ -1525,23 +1709,23 @@ Expected: `1`
 sed -i "s/provider: 'none' as CommentProvider/provider: 'twikoo' as CommentProvider/" src/consts.ts
 sed -i "s|    envId: '',|    envId: 'https://twikoo-test.example.workers.dev',|" src/consts.ts
 npm run build
-grep -c "__commentsWhenNear" dist/guestbook/index.html
+grep -o "window.__commentsWhenNear = function" dist/guestbook/index.html | wc -l
 ```
 
 Expected: `0`。**关键断言**——留言页现在传了 `lazy={false}`，不再输出懒加载 helper
 
 ```bash
-grep -c "__commentsWhenNear" dist/blog/tmux-guide/index.html
+grep -o "window.__commentsWhenNear = function" dist/blog/tmux-guide/index.html | wc -l
 ```
 
-Expected: 非零。文章页仍然懒加载
+Expected: `1`。文章页仍然懒加载
 
 ```bash
 git checkout src/consts.ts
 npm run build && npm test
 ```
 
-Expected: `30 page(s) built`；107 tests passed；`git diff src/consts.ts` 为空
+Expected: `30 page(s) built`；112 tests passed；`git diff src/consts.ts` 为空
 
 - [ ] **Step 4: 本地目视确认**
 
@@ -1791,7 +1975,7 @@ Cloudflare，得走 Vercel 等平台，注意国内访问速度。
 npm run build && npm test
 ```
 
-Expected: `30 page(s) built`，零报错；107 tests passed
+Expected: `30 page(s) built`，零报错；112 tests passed
 
 - [ ] **Step 6: 核对文档里没有编造的步骤**
 
@@ -1846,8 +2030,8 @@ Twikoo 类名覆盖。"
 | 路径键渲染进 `init()` 而非读 `location.pathname` | Task 5 Step 2/3（含 `grep -c "location.pathname"` = 0 的断言） |
 | `comments.css` Waline 变量映射（12 条 + 字号 + 阴影） | Task 7 |
 | `comments.css` Twikoo 类名覆盖 + 标注未验证 | Task 7 |
-| `global.css` 引入 | Task 7 |
-| 懒加载（仅文章页）+ `<noscript>` + 占位高度 | `<noscript>` 在 Task 4/5/6 各组件内；helper 在 Task 8；`min-height` 在 Task 7 |
+| `comments.css` 建档 + `global.css` 引入 | Task 3 |
+| 懒加载（仅文章页）+ `<noscript>` + 占位高度 | `<noscript>` 抽成 `NoScriptNotice`（Task 4）三处共用；helper 在 Task 8；`.comments-mount` 的 `min-height` 在 Task 4 |
 | 留言页外壳润色 + 留言须知 | Task 9 |
 | `docs/comments-backend.md` | Task 10 |
 | 不做弹幕 / 自建后端 / 表情面板 / 彩色 banner | 全程未出现 |
@@ -1867,7 +2051,19 @@ README 更新不在 spec 里，是实现时该带的收尾——留在 Task 10�
 - props 名 `config` / `path` / `lazy` —— 三个 provider 组件与分发器一致
 - `COMMENTS.twikoo.envId`、`COMMENTS.waline.serverURL`、`COMMENTS.giscus.repoId` —— Task 2 定义，后续 Task 与 `sed` 命令一致
 
-**4. 任务间的一处已知张力（刻意保留）**
+**4. 预检修订（执行前，用户裁定）**
+
+开工前扫计划时发现三处「计划自己要求的写法会被评审判成缺陷」，已提交用户裁定并按裁定改掉：
+
+| 问题 | 裁定与落点 |
+|---|---|
+| `.comments` / `.hint` 在四个组件里逐字重复 | 收拢到 `comments.css`。全局化时改名 `.comments-hint`——`404.astro` 已有自己的 `.hint`；`.title` 与 `archive.astro` 撞名故不全局化。`comments.css` 与 `global.css` 的引入因此从 Task 7 提前到 Task 3（否则 Task 3 交付一张没样式的卡片，验收不了） |
+| `<noscript>` 在三个 provider 组件里逐字重复 | 抽成 `NoScriptNotice.astro`，在 Task 4（第一个使用方）落地，Task 5/6 各写一行复用 |
+| Task 2 的「未启用的 provider 允许留空」是恒真式 | 校验逻辑抽成 `lib/comments.ts` 的 `missingCommentFields` 纯函数，用造出来的配置证明它真会报缺失；`consts.test.ts` 只负责浇到真实配置上。必填字段表因此只存一份 |
+
+另修掉一处不需裁定的事实错误：Task 7 原本只在 `dist/_astro/*.css` 里 grep 样式，而 Astro 的 `inlineStylesheets: 'auto'` 会让样式在外链与内联间漂移——`.superpowers/sdd/progress.md` 记录这个坑已在前三轮造成三次假失败。改为两处都搜。
+
+**5. 任务间的一处已知张力（刻意保留）**
 
 Task 4/5/6 的组件调 `window.__commentsWhenNear`，而它到 Task 8 才定义。三个组件都写成
 `if (lazy && window.__commentsWhenNear) ... else load()`，helper 缺失时退化为立即加载，

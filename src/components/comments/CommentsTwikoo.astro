@@ -1,0 +1,57 @@
+---
+import NoScriptNotice from './NoScriptNotice.astro';
+
+interface Props {
+  config: { envId: string; region: string };
+  /** 评论线路径键，由 Comments.astro 用 normalizeCommentPath 算出 */
+  path: string;
+  lazy: boolean;
+}
+const { config, path, lazy } = Astro.props;
+
+// 版本写死，不用 @latest。latest 会在某天静默换掉 DOM 结构，
+// 而 comments.css 里那组 .tk-* / .el-* 覆盖是绑着结构的，会一起碎掉。
+// 那组选择器已经对着 1.7.19 的产物逐个核过（内嵌的 element-ui 样式表 +
+// Vue render 函数里的 staticClass），所以钉版本不只是防御性的：
+// 它是那份核对结果成立的前提。升级时改这一行，然后回去重做一遍核对。
+const TWIKOO_VERSION = '1.7.19';
+const cdn = `https://cdn.jsdelivr.net/npm/twikoo@${TWIKOO_VERSION}/dist/twikoo.min.js`;
+---
+
+<section class="comments" aria-label="评论">
+  <div id="twikoo-mount" class="comments-mount"></div>
+  <NoScriptNotice />
+</section>
+
+<script is:inline define:vars={{ cdn, envId: config.envId, region: config.region, path, lazy }}>
+  (function () {
+    const host = document.getElementById('twikoo-mount');
+    if (!host) return;
+
+    let loaded = false;
+    function load() {
+      if (loaded) return;
+      loaded = true;
+      const s = document.createElement('script');
+      s.src = cdn;
+      s.onload = function () {
+        const opts = {
+          envId: envId,
+          el: '#twikoo-mount',
+          // path 由构建期算出，不用 location.pathname——后者带不带尾斜杠取决于
+          // 访客怎么进来，而 Twikoo 把两种形态当成两条独立评论线。
+          path: path,
+          lang: 'zh-CN',
+        };
+        // region 只有腾讯云要填。给 Vercel / Cloudflare 传空串会让它去连一个
+        // 不存在的地域，所以留空时干脆不传这个键。
+        if (region) opts.region = region;
+        window.twikoo.init(opts);
+      };
+      document.head.appendChild(s);
+    }
+
+    if (lazy && window.__commentsWhenNear) window.__commentsWhenNear(host, load);
+    else load();
+  })();
+</script>

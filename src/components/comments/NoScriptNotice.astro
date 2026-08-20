@@ -1,0 +1,31 @@
+---
+import ContactLinks from './ContactLinks.astro';
+
+// 三个 provider 的 <noscript> 内容一模一样，抽在这里。
+// 理由同 ContactLinks：复制三份，改这句提示就得改三处，必然漏一个。
+//
+// 下面那条 <style is:inline> 是干什么的：
+// comments.css 给 .comments-mount 留了 190px 占位，防止 widget 注入时把下方内容顶动。
+// 那个占位只在「widget 迟早会来」时才讲得通——禁用 JavaScript 时它永远不来，
+// 190px 就成了一块凭空的空白，还压在下面这句提示上方。这里把它撤回 0。
+// 放在 <noscript> 里，是因为 CSS 没有「脚本被禁用」的选择器可用：
+// @media (scripting: none) 是 Media Queries Level 5，老浏览器还认不出来；
+// 而 <noscript> 的内容在脚本可用时不会被当作元素解析，各处都必然生效。
+// 必须带 is:inline，否则 Astro 会把它提出去做成 scoped 样式表，脚本可用时也生效，
+// 占位就白留了。权重与 comments.css 里那条相同（0,1,0），靠出现在 <body> 里、
+// 排在样式表之后取胜。
+//
+// 注意这段说明只能写在 frontmatter 里，不能用花括号包的 JSX 注释写进
+// <noscript> 内部：实测（astro 5）那样会让编译器把 noscript 提前收尾，
+// 提示与联系方式全部漏到 <noscript> 外面，变成任何时候都显示。
+---
+
+<noscript>
+  <style is:inline>
+    .comments-mount {
+      min-height: 0;
+    }
+  </style>
+  <p class="comments-hint">评论区需要 JavaScript。也可以直接找我：</p>
+  <ContactLinks />
+</noscript>

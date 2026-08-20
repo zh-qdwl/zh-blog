@@ -1,79 +1,70 @@
 ---
-import { COMMENTS, SOCIAL } from '../consts';
+import { COMMENTS } from '../consts';
+import { normalizeCommentPath } from '../lib/comments';
+import CommentsFallback from './comments/CommentsFallback.astro';
+import CommentsGiscus from './comments/CommentsGiscus.astro';
+import CommentsTwikoo from './comments/CommentsTwikoo.astro';
+import CommentsWaline from './comments/CommentsWaline.astro';
 
-// 从仓库地址推出 issues 地址。必须用 SOCIAL.repo 而不是 SOCIAL.github ——
-// 后者是个人主页，拼出来的 /zh-qdwl/issues 是个死链。没配 repo 就只留邮箱。
-const issuesUrl = SOCIAL.repo ? `${SOCIAL.repo.replace(/\/$/, '')}/issues` : '';
+interface Props {
+  /** 懒加载：滚到附近才拉三方脚本。留言页应传 false */
+  lazy?: boolean;
+}
+const { lazy = COMMENTS.lazyOnPosts } = Astro.props;
+
+// 评论线的路径键。用构建期的规范路径，不让 widget 去读 location.pathname——
+// 理由见 src/lib/comments.ts 的注释。
+// 三个 provider 一个都不能漏：giscus 早先没传，它的 data-mapping="pathname" 分支
+// 读的是原始 location.pathname（client.js 里只做了「去掉开头的 /、去掉 .扩展名」，
+// 不归一尾斜杠），于是 /blog/foo/ 与 /blog/foo 会落到两条互不可见的 Discussion 上——
+// 正是这个函数存在的目的。
+const path = normalizeCommentPath(Astro.url.pathname);
+
+// helper 只在真要懒加载时才输出，provider='none' 或留言页不用白搭一段脚本
+const needsLazyHelper = lazy && COMMENTS.provider !== 'none';
 ---
 
-{COMMENTS.provider === 'giscus' ? (
-  <section class="comments" aria-label="评论">
-    <script
-      src="https://giscus.app/client.js"
-      data-repo={COMMENTS.giscus.repo}
-      data-repo-id={COMMENTS.giscus.repoId}
-      data-category={COMMENTS.giscus.category}
-      data-category-id={COMMENTS.giscus.categoryId}
-      data-mapping="pathname"
-      data-reactions-enabled="1"
-      data-emit-metadata="0"
-      data-input-position="top"
-      data-lang="zh-CN"
-      crossorigin="anonymous"
-      async
-    ></script>
-  </section>
-) : (
-  <section class="comments card" aria-label="交流">
-    <p class="title">想聊两句？</p>
-    <p class="hint">
-      这个博客是纯静态站点，暂时没接评论系统。有问题、有想法，或者发现了什么错误，欢迎直接找我：
-    </p>
-    <div class="actions">
-      {SOCIAL.email && <a class="btn" href={`mailto:${SOCIAL.email}`}>发邮件</a>}
-      {issuesUrl && (
-        <a class="btn-ghost" href={issuesUrl} target="_blank" rel="noopener">
-          在 GitHub 上开 Issue
-        </a>
-      )}
-    </div>
-  </section>
+{needsLazyHelper && (
+  <script is:inline>
+    // is:inline 脚本之间无法 import，共享逻辑只能挂在 window 上。
+    // 三个 provider 组件都调它，避免各写一份 IntersectionObserver——
+    // 改 rootMargin 时只有这一处。
+    //
+    // 注释一律用 // ：花括号包起来的那种 JSX 注释是模板语法，写在 is:inline 的
+    // 脚本体里不会被 Astro 处理掉，会连花括号一起原样落进每一篇文章页的产物
+    // （浏览器把它解析成一个空块，无害，但读起来像写错了）。
+    window.__commentsWhenNear = function (el, load) {
+      // 极老浏览器没有 IntersectionObserver：直接加载，不引 polyfill。
+      // 评论区读不到比多一个 polyfill 更糟。
+      if (!('IntersectionObserver' in window)) {
+        load();
+        return;
+      }
+      var io = new IntersectionObserver(
+        function (entries) {
+          for (var i = 0; i < entries.length; i++) {
+            if (entries[i].isIntersecting) {
+              io.disconnect();
+              load();
+              return;
+            }
+          }
+        },
+        // 提前 400px 开始加载，滚到评论区时脚本通常已经就位
+        { rootMargin: '400px' }
+      );
+      io.observe(el);
+    };
+  </script>
 )}
 
-<style>
-  .comments {
-    margin-top: 48px;
-    padding: 24px;
-  }
-  .title {
-    margin: 0 0 8px;
-    font-weight: 700;
-    font-size: 1.1rem;
-  }
-  .hint {
-    margin: 0 0 18px;
-    color: var(--text-soft);
-    font-size: 0.93rem;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    color: var(--text);
-    font-size: 0.92rem;
-    font-weight: 600;
-    transition: border-color 0.15s ease, background 0.15s ease;
-  }
-  .btn-ghost:hover {
-    border-color: var(--brand);
-    background: var(--bg-soft);
-    text-decoration: none;
-  }
-</style>
+{COMMENTS.provider === 'giscus' && (
+  <CommentsGiscus config={COMMENTS.giscus} path={path} lazy={lazy} />
+)}
+{COMMENTS.provider === 'twikoo' && (
+  <CommentsTwikoo config={COMMENTS.twikoo} path={path} lazy={lazy} />
+)}
+{COMMENTS.provider === 'waline' && (
+  <CommentsWaline config={COMMENTS.waline} path={path} lazy={lazy} />
+)}
+{COMMENTS.provider === 'none' && <CommentsFallback />}
