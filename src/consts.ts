@@ -124,7 +124,7 @@ export const MINI_PROGRAM = {
 export type CommentProvider = 'none' | 'giscus' | 'twikoo' | 'waline';
 
 export const COMMENTS = {
-  provider: 'none' as CommentProvider,
+  provider: 'twikoo' as CommentProvider,
 
   /** 文章页评论区懒加载：滚到附近才拉三方脚本。
       留言页不受它影响——评论区就是那一页的主体，永远立即加载。 */
@@ -139,7 +139,7 @@ export const COMMENTS = {
 
   twikoo: {
     /** 后端地址（Vercel / Cloudflare Worker）或腾讯云环境 ID */
-    envId: '',
+    envId: 'https://twikoo.zhgyx.dpdns.org',
     /** 仅腾讯云需要填，Vercel / Cloudflare 一律留空 */
     region: '',
   },
