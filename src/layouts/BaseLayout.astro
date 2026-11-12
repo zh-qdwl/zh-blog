@@ -38,9 +38,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="generator" content={Astro.generator} />
     <!-- 进入页面前先设置主题，避免深浅色闪烁 -->
     <script is:inline>
-      const t = localStorage.getItem('theme') ||
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-theme', t);
+      // 包一层 IIFE：这是经典脚本（is:inline），顶层 const 会进入全局词法作用域。
+      // Twikoo 的 CDN 脚本顶层声明 var e, t —— var 与已存在的全局 let/const 绑定同名
+      // 会直接 SyntaxError，整个脚本解析失败、评论区空白。作用域隔离才是根治。
+      (function () {
+        var theme = localStorage.getItem('theme') ||
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
     </script>
   </head>
   <body>
