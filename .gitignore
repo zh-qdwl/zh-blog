@@ -26,3 +26,10 @@ npm-debug.log*
 # twikoo-cloudflare 是独立 Git 仓库（fork），嵌在本仓库目录下只是本地开发方便
 twikoo-cloudflare/
 
+
+# Playwright MCP 调试产物（快照/截图/控制台日志），不进版本库
+.playwright-mcp/
+twikoo-head.txt
+twikoo-*.png
+resend-*.png
+anchor-jump.png
