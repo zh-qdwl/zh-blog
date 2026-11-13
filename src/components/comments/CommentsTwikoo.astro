@@ -47,6 +47,27 @@ const cdn = `https://cdn.jsdelivr.net/npm/twikoo@${TWIKOO_VERSION}/dist/twikoo.m
         // 不存在的地域，所以留空时干脆不传这个键。
         if (region) opts.region = region;
         window.twikoo.init(opts);
+        // 带 #评论id 打开页面时，评论区是懒加载 + 异步渲染的：浏览器解析
+        // hash 时锚点元素还不存在，原生跳转不会发生。init 完成后用
+        // MutationObserver 等那条评论真正渲染出来，再手动滚过去。
+        // 10 秒后放弃——评论加载失败或 hash 指向不存在的评论时不无限等。
+        if (location.hash && /^[0-9a-f]{32}$/.test(location.hash.slice(1))) {
+          var targetId = location.hash.slice(1);
+          var tryScroll = function () {
+            var el = document.getElementById(targetId);
+            if (el) {
+              el.scrollIntoView({ block: 'center' });
+              observer.disconnect();
+              return true;
+            }
+            return false;
+          };
+          var observer = new MutationObserver(function () { tryScroll(); });
+          observer.observe(document.body, { childList: true, subtree: true });
+          // 轮询兜底：某些渲染路径不产生 childList 变化
+          var poll = setInterval(function () { if (tryScroll()) clearInterval(poll); }, 300);
+          setTimeout(function () { observer.disconnect(); clearInterval(poll); }, 10000);
+        }
       };
       document.head.appendChild(s);
     }
