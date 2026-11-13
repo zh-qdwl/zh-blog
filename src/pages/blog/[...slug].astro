@@ -1,5 +1,6 @@
 ---
 import { render } from 'astro:content';
+import { estimateReadMinutes } from '../../lib/format';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import Toc from '../../components/Toc.astro';
@@ -32,6 +33,10 @@ const { title, description, pubDate, updatedDate, tags, category } = post.data;
         {updatedDate && (
           <span>· 更新于 <FormattedDate date={updatedDate} /></span>
         )}
+        {/* 阅读时长：构建期由 Markdown 原文估算，纯静态 */}
+        <span class="read-time">· 约 {estimateReadMinutes(post.body ?? '')} 分钟</span>
+        {/* 浏览量：Twikoo 的 COUNTER_GET 提供，客户端填充 */}
+        <span class="views" hidden>· <span id="post-views">–</span> 次浏览</span>
         {tags.map((tag) => (
           <a class="tag" href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a>
         ))}

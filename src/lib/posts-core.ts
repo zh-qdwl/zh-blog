@@ -66,7 +66,9 @@ export function groupByTag(posts: PostLike[]): Counted[] {
 export function groupByYear<T extends PostLike>(posts: T[]): ArchiveGroup<T>[] {
   const map = new Map<number, T[]>();
   for (const p of sortByDate(posts)) {
-    const year = p.data.pubDate.getFullYear();
+    // UTC 取值：pubDate 被 z.coerce.date() 解析为 UTC 午夜，本地时区分年会在
+    // 负时区构建机上把 1 月 1 日归到上一年（polish-todo B3）
+    const year = p.data.pubDate.getUTCFullYear();
     const bucket = map.get(year);
     if (bucket) bucket.push(p);
     else map.set(year, [p]);

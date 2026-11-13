@@ -159,3 +159,21 @@ describe('filterFeatured', () => {
     expect(posts).toHaveLength(2);
   });
 });
+
+describe('groupByYear UTC 归组', () => {
+  it('UTC 午夜的日期按 UTC 年归组，不受构建机时区影响', () => {
+    const mk = (id: string, iso: string) => ({
+      id,
+      data: { title: id, description: '', pubDate: new Date(iso), updatedDate: undefined, tags: [], category: 'c', pinned: false, featured: false, draft: false },
+    });
+    const posts = [
+      mk('a', '2025-12-31T23:00:00Z'),
+      mk('b', '2026-01-01T00:30:00Z'),
+    ];
+    const groups = groupByYear(posts);
+    // UTC 23:00 是 2025 年，00:30 是 2026 年 —— 严格按 UTC 分界
+    expect(groups.map((g) => g.year)).toEqual([2026, 2025]);
+    expect(groups[0].posts[0].id).toBe('b');
+    expect(groups[1].posts[0].id).toBe('a');
+  });
+});

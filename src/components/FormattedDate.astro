@@ -3,10 +3,13 @@ interface Props {
   date: Date;
 }
 const { date } = Astro.props;
+// UTC 时区渲染：pubDate 解析为 UTC 午夜，本地时区（如 UTC-5）会显示成前一天。
+// 统一按 UTC 渲染，与 datetime 属性的 toISOString() 一致（polish-todo B3）。
 const formatted = date.toLocaleDateString('zh-CN', {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
+  timeZone: 'UTC',
 });
 ---
 <time datetime={date.toISOString()}>{formatted}</time>

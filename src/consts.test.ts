@@ -13,6 +13,7 @@ import {
 } from './consts';
 import { NAV_ICONS } from './lib/nav-icons';
 import { missingCommentFields } from './lib/comments';
+import { SOCIAL_LINKS, isExternalHref } from './lib/social';
 
 describe('首页整屏 Hero 的配置', () => {
   it('HERO_TAGLINES 不为空，且没有空串', () => {
@@ -142,5 +143,27 @@ describe('评论系统配置', () => {
     // 它被 define:vars 传进 is:inline 脚本做 if 判断，
     // 写成字符串 'false' 会被当成真值，懒加载静默失效
     expect(typeof COMMENTS.lazyOnPosts).toBe('boolean');
+  });
+});
+
+describe('社交链接单一数据源', () => {
+  it('SOCIAL_LINKS 无空链接、无重复 key', () => {
+    const keys = SOCIAL_LINKS.map((l) => l.key);
+    for (const l of SOCIAL_LINKS) {
+      expect(l.href.trim(), `${l.key} 的 href 为空`).not.toBe('');
+      expect(l.label.trim(), `${l.key} 的 label 为空`).not.toBe('');
+    }
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('github 必须存在（页脚/Hero/侧栏的主链接）', () => {
+    expect(SOCIAL_LINKS.some((l) => l.key === 'github')).toBe(true);
+  });
+
+  it('isExternalHref 只对 http(s) 返回 true', () => {
+    expect(isExternalHref('https://github.com/x')).toBe(true);
+    expect(isExternalHref('http://example.com')).toBe(true);
+    expect(isExternalHref('mailto:a@b.c')).toBe(false);
+    expect(isExternalHref('/rss.xml')).toBe(false);
   });
 });

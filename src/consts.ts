@@ -104,6 +104,23 @@ export const SOCIAL = {
 // 刻意只放一句话 + 一个指向介绍文章的链接，**不放小程序码**：
 // 码只在那篇文章里维护一处，换码时不用改两个地方；侧栏也不至于因为多出一张
 // 二维码而变成广告位——它旁边还有 5 张内容卡片。
+// 友情链接。空数组时 /friends 页面会显示引导语，导航「关于」下拉里的入口也会隐藏。
+//
+// 数据驱动：加一个友链就是往数组里加一个对象，不用碰页面代码。
+// avatar 可空 —— 空时渲染首字母圆形占位（颜色由 name 的哈希决定，全站唯一的
+// 卡片配色逻辑复用 PostCard 的色相哈希方案）。
+export type FriendLink = {
+  name: string;
+  desc: string;
+  href: string;
+  avatar?: string;
+};
+
+export const FRIEND_LINKS: FriendLink[] = [
+  // 示例（填上即生效）：
+  // { name: '某某的博客', desc: '前端 / 随笔', href: 'https://example.com', avatar: '/friend-avatar.webp' },
+];
+
 export const MINI_PROGRAM = {
   name: '昊玉工具箱',
   tagline: '六个高频小工具，打开即用、用完带走',

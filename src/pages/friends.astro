@@ -1,0 +1,116 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { FRIEND_LINKS } from '../consts';
+
+// 名字哈希取色相，与 PostCard 无封面时的色相方案同源，让占位色和站内视觉一致。
+// 空字符串也安全：charCodeAt(0) 是 NaN，|| 0 兜底后落在 0 档。
+function hueFor(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
+}
+const hasFriends = FRIEND_LINKS.length > 0;
+---
+
+<BaseLayout title="友情链接" description="友情链接与朋友们" layout="sidebar">
+  <h1 class="page-title">友情链接</h1>
+
+  {hasFriends ? (
+    <ul class="friend-list">
+      {FRIEND_LINKS.map((f) => (
+        <li class="friend-card">
+          <a href={f.href} target="_blank" rel="noopener">
+            {f.avatar ? (
+              <img class="avatar" src={f.avatar} alt={`${f.name}的头像`} width="56" height="56" loading="lazy" />
+            ) : (
+              <span
+                class="avatar avatar-fallback"
+                style={`--hue:${hueFor(f.name)}`}
+                aria-hidden="true"
+              >{f.name.slice(0, 1)}</span>
+            )}
+            <span class="info">
+              <span class="name">{f.name}</span>
+              <span class="desc">{f.desc}</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="empty">还没有友链。想交换友链的话，先给你的站点加上本站链接，然后通过侧栏或页脚的联系方式告诉我。</p>
+  )}
+</BaseLayout>
+
+<style>
+  .page-title {
+    margin: 0 0 20px;
+  }
+  .friend-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  .friend-card a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg-card, var(--bg));
+    color: inherit;
+    text-decoration: none;
+    transition:
+      border-color var(--dur) var(--ease),
+      transform var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease);
+  }
+  .friend-card a:hover {
+    border-color: var(--brand);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow, 0 4px 14px rgb(0 0 0 / 0.06));
+  }
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+  }
+  .avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: hsl(var(--hue) 60% 42%);
+    background: hsl(var(--hue) 70% 92%);
+  }
+  :global([data-theme='dark']) .avatar-fallback {
+    color: hsl(var(--hue) 60% 78%);
+    background: hsl(var(--hue) 40% 22%);
+  }
+  .info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .name {
+    font-weight: 600;
+  }
+  .desc {
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .empty {
+    color: var(--text-soft);
+    line-height: 1.8;
+  }
+</style>

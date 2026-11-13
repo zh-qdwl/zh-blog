@@ -1,0 +1,106 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - link "Skip to sign in" [ref=e3] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e4]:
+      - link "x10Hosting home" [ref=e5] [cursor=pointer]:
+        - /url: https://x10hosting.com
+        - img "x10Hosting" [ref=e6]
+      - link "Back to account selection" [ref=e7] [cursor=pointer]:
+        - /url: https://x10hosting.com/login-select
+        - generic [aria-hidden] [ref=e10]: Choose another account
+  - main [ref=e11]:
+    - generic [ref=e12]:
+      - region "Sign in to your account." [ref=e13]:
+        - complementary "Account system" [ref=e14]:
+          - generic [ref=e15]:
+            - img "x10Hosting" [ref=e16]
+            - generic [ref=e17]: Hosting panel
+          - generic [ref=e18]:
+            - heading "The right door for Free and Basic hosting." [level=2] [ref=e19]
+            - paragraph [ref=e20]: This account manages your x10Hosting profile and eligible shared hosting services.
+          - list "Plans that use this sign-in" [ref=e21]:
+            - listitem [ref=e22]: Free Shared Hosting
+            - listitem [ref=e23]: Basic Shared Hosting
+          - paragraph [ref=e24]:
+            - text: On an Infinity, Infinity+, or VPS plan?
+            - link "Choose the other portal" [ref=e25] [cursor=pointer]:
+              - /url: https://x10hosting.com/login-select
+            - text: .
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - heading "Sign in to your account." [level=1] [ref=e28]
+            - paragraph [ref=e29]: Use the email address and password connected to your x10Hosting profile.
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - generic [ref=e32]: Email address
+              - textbox "Email address" [ref=e33]:
+                - /placeholder: you@example.com
+                - text: zhanghao990511@gmail.com
+            - generic [ref=e34]:
+              - generic [ref=e35]:
+                - generic [ref=e36]: Password
+                - link "Forgot password?" [ref=e37] [cursor=pointer]:
+                  - /url: https://x10hosting.com/reset
+              - textbox "Password" [ref=e38]:
+                - /placeholder: Enter your password
+                - text: Zh990511.
+            - generic [ref=e39]:
+              - generic [ref=e40]:
+                - paragraph [ref=e41]:
+                  - strong [ref=e42]: Human check
+                  - generic [ref=e43]: Complete this once to unlock sign in.
+                - generic [ref=e44]: Waiting
+              - iframe [ref=e49]:
+                - generic [ref=f1e2]:
+                  - generic [ref=f1e3]:
+                    - checkbox "进行人机身份验证" [ref=f1e7]
+                    - generic [aria-hidden] [ref=f1e11]: 进行人机身份验证
+                  - generic [ref=f1e12]: reCAPTCHA
+              - status [ref=e50]: The sign-in button will unlock when the check is complete.
+            - button "Sign in securely" [disabled]
+          - paragraph [ref=e51]:
+            - text: Need a free hosting account?
+            - link "Create one" [ref=e52] [cursor=pointer]:
+              - /url: https://x10hosting.com/signup
+            - text: .
+      - paragraph [ref=e53]:
+        - text: Having trouble after resetting your password?
+        - link "Contact x10Hosting" [ref=e54] [cursor=pointer]:
+          - /url: https://x10hosting.com/contact
+        - text: without sharing your password.
+  - contentinfo [ref=e55]:
+    - generic [ref=e56]:
+      - paragraph [ref=e57]: © 2026 x10Hosting, LLC.
+      - navigation "Legal" [ref=e58]:
+        - link "Terms" [ref=e59] [cursor=pointer]:
+          - /url: https://x10hosting.com/tos
+        - link "Privacy" [ref=e60] [cursor=pointer]:
+          - /url: https://x10hosting.com/privacy
+  - iframe [active] [ref=e64]:
+    - dialog [ref=f4e3]:
+      - generic [ref=f4e4]:
+        - generic [ref=f4e7]:
+          - text: 请选择包含
+          - strong [ref=f4e8]: 红绿灯
+          - text: 的所有图片。
+        - table [ref=f4e11]:
+          - rowgroup [ref=f4e12]:
+            - row [ref=f4e13]:
+              - button [ref=f4e14]
+              - button [ref=f4e17]
+              - button [ref=f4e20]
+            - row [ref=f4e23]:
+              - button [ref=f4e24]
+              - button [ref=f4e27]
+              - button [ref=f4e30]
+            - row [ref=f4e33]:
+              - button [ref=f4e34]
+              - button [ref=f4e37]
+              - button [ref=f4e40]
+      - generic [ref=f4e46]:
+        - generic [ref=f4e47]:
+          - button "换一个新的验证码" [ref=f4e49] [cursor=pointer]
+          - button "改用音频验证" [ref=f4e51] [cursor=pointer]
+          - button "帮助" [ref=f4e53] [cursor=pointer]
+        - button "验证" [ref=f4e55] [cursor=pointer]

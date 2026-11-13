@@ -1,0 +1,99 @@
+- generic [active]:
+  - generic [ref=f24e1]:
+    - generic [ref=f24e5]:
+      - complementary [ref=f24e7]:
+        - button "1 1498690093" [ref=f24e9] [cursor=pointer]:
+          - generic [ref=f24e11]:
+            - generic [ref=f24e12]: "1"
+            - generic [ref=f24e28]: "1498690093"
+        - navigation [ref=f24e33]:
+          - list [ref=f24e34]:
+            - listitem [ref=f24e35]:
+              - link "Emails" [ref=f24e36] [cursor=pointer]:
+                - /url: /emails
+            - listitem [ref=f24e45]:
+              - link "Templates" [ref=f24e46] [cursor=pointer]:
+                - /url: /templates
+            - listitem [ref=f24e61]:
+              - link "Audience" [ref=f24e62] [cursor=pointer]:
+                - /url: /audience
+          - separator [aria-hidden] [ref=f24e80]
+          - list [ref=f24e81]:
+            - listitem [ref=f24e82]:
+              - link "Inboxes" [ref=f24e83] [cursor=pointer]:
+                - /url: /inboxes
+            - listitem [ref=f24e93]:
+              - link "Broadcasts" [ref=f24e94] [cursor=pointer]:
+                - /url: /broadcasts
+            - listitem [ref=f24e109]:
+              - link "Automations" [ref=f24e110] [cursor=pointer]:
+                - /url: /automations
+          - separator [aria-hidden] [ref=f24e119]
+          - list [ref=f24e120]:
+            - listitem [ref=f24e121]:
+              - link "Metrics" [ref=f24e122] [cursor=pointer]:
+                - /url: /metrics
+            - listitem [ref=f24e137]:
+              - link "Domains" [ref=f24e138] [cursor=pointer]:
+                - /url: /domains
+            - listitem [ref=f24e223]:
+              - link "Logs" [ref=f24e224] [cursor=pointer]:
+                - /url: /logs
+            - listitem [ref=f24e245]:
+              - link "API keys" [ref=f24e246] [cursor=pointer]:
+                - /url: /api-keys
+            - listitem [ref=f24e265]:
+              - link "Webhooks" [ref=f24e266] [cursor=pointer]:
+                - /url: /webhooks
+            - listitem [ref=f24e284]:
+              - link "Settings" [ref=f24e285] [cursor=pointer]:
+                - /url: /settings
+        - generic [ref=f24e296]:
+          - button "Appearance" [ref=f24e297] [cursor=pointer]
+          - generic [ref=f24e301]:
+            - button "Feedback" [ref=f24e302] [cursor=pointer]
+            - link "Help" [ref=f24e306] [cursor=pointer]:
+              - /url: /help
+      - generic [ref=f24e310]:
+        - generic [ref=f24e344]:
+          - heading "Add domain" [level=1] [ref=f24e345]
+          - text: Use a domain you own to send and receive emails.
+        - generic [ref=f24e349]:
+          - generic [ref=f24e355]:
+            - heading "Domain" [level=3] [ref=f24e357]
+            - paragraph [ref=f24e358]: Domain name and region for your sending and receiving.
+            - generic [ref=f24e360]:
+              - generic [ref=f24e361]:
+                - generic [ref=f24e362]:
+                  - generic [ref=f24e363]: Name
+                  - generic [ref=f24e365]:
+                    - textbox "Name" [invalid] [ref=f24e366]:
+                      - /placeholder: updates.example.com
+                      - text: zhgyx.dpdns.org
+                    - button "View error" [ref=f24e369] [cursor=pointer]
+                - button "Advanced options" [ref=f24e375] [cursor=pointer]
+                - button "Add domain" [disabled] [ref=f24e380]
+              - generic [ref=f24e390]:
+                - generic [ref=f24e391]: "Y"
+                - generic [ref=f24e395]:
+                  - generic [ref=f24e396]:
+                    - generic [ref=f24e397]: Your Name
+                    - generic [ref=f24e398]:
+                      - text: <youremail@
+                      - generic [ref=f24e399]: zhgyx.dpdns.org
+                      - text: ">"
+                  - generic [ref=f24e400]: to me
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading "DNS Records" [level=3]
+    - generic [ref=f24e411]:
+      - 'link "Docs: /docs/dashboard/domains/introduction"':
+        - /url: https://resend.com/docs/dashboard/domains/introduction
+        - generic [ref=f24e412] [cursor=pointer]: /docs
+        - generic: /domains
+      - button "Ask anything" [ref=f24e420] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=f24e425]

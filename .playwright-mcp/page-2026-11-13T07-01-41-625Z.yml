@@ -1,0 +1,161 @@
+- generic [active]:
+  - generic [ref=f32e1]:
+    - generic [ref=f32e5]:
+      - complementary [ref=f32e7]:
+        - button "1 1498690093" [ref=f32e427] [cursor=pointer]:
+          - generic [ref=f32e11]:
+            - generic [ref=f32e12]: "1"
+            - generic [ref=f32e13]: "1498690093"
+        - navigation [ref=f32e18]:
+          - list [ref=f32e19]:
+            - listitem [ref=f32e20]:
+              - link "Emails" [ref=f32e21] [cursor=pointer]:
+                - /url: /emails
+            - listitem [ref=f32e24]:
+              - link "Templates" [ref=f32e25] [cursor=pointer]:
+                - /url: /templates
+            - listitem [ref=f32e28]:
+              - link "Audience" [ref=f32e29] [cursor=pointer]:
+                - /url: /audience
+          - separator [aria-hidden] [ref=f32e32]
+          - list [ref=f32e33]:
+            - listitem [ref=f32e34]:
+              - link "Inboxes" [ref=f32e35] [cursor=pointer]:
+                - /url: /inboxes
+            - listitem [ref=f32e38]:
+              - link "Broadcasts" [ref=f32e39] [cursor=pointer]:
+                - /url: /broadcasts
+            - listitem [ref=f32e42]:
+              - link "Automations" [ref=f32e43] [cursor=pointer]:
+                - /url: /automations
+          - separator [aria-hidden] [ref=f32e46]
+          - list [ref=f32e47]:
+            - listitem [ref=f32e48]:
+              - link "Metrics" [ref=f32e49] [cursor=pointer]:
+                - /url: /metrics
+            - listitem [ref=f32e52]:
+              - link "Domains" [ref=f32e53] [cursor=pointer]:
+                - /url: /domains
+            - listitem [ref=f32e56]:
+              - link "Logs" [ref=f32e57] [cursor=pointer]:
+                - /url: /logs
+            - listitem [ref=f32e60]:
+              - link "API keys" [ref=f32e61] [cursor=pointer]:
+                - /url: /api-keys
+            - listitem [ref=f32e64]:
+              - link "Webhooks" [ref=f32e65] [cursor=pointer]:
+                - /url: /webhooks
+            - listitem [ref=f32e68]:
+              - link "Settings" [ref=f32e69] [cursor=pointer]:
+                - /url: /settings
+        - generic [ref=f32e72]:
+          - button "Appearance" [ref=f32e73] [cursor=pointer]
+          - generic [ref=f32e77]:
+            - button "Feedback" [ref=f32e78] [cursor=pointer]
+            - link "Help" [ref=f32e82] [cursor=pointer]:
+              - /url: /help
+      - generic [ref=f32e86]:
+        - generic [ref=f32e87]:
+          - heading "Logs" [level=1] [ref=f32e88]
+          - button "Open API drawer" [ref=f32e90] [cursor=pointer]
+        - generic [ref=f32e94]:
+          - generic [ref=f32e95]:
+            - textbox "Search logs by ID" [ref=f32e97]:
+              - /placeholder: Search...
+            - generic [ref=f32e98]:
+              - button "Last 15 days" [ref=f32e99] [cursor=pointer]
+              - button "All statuses" [ref=f32e104] [cursor=pointer]
+              - combobox [ref=f32e109] [cursor=pointer]:
+                - generic [ref=f32e110]: All user agents
+              - textbox [aria-hidden] [ref=f32e113]: all
+              - combobox [ref=f32e114] [cursor=pointer]:
+                - generic [ref=f32e115]: All sources
+              - textbox [aria-hidden] [ref=f32e118]: all
+            - button [ref=f32e119] [cursor=pointer]
+          - table [ref=f32e125]:
+            - rowgroup [ref=f32e126]:
+              - row [ref=f32e127]:
+                - columnheader "Endpoint" [ref=f32e128]
+                - columnheader "Status" [ref=f32e129]
+                - columnheader "Method" [ref=f32e130]
+                - columnheader "Created" [ref=f32e131]
+            - rowgroup [ref=f32e132]:
+              - row [ref=f32e133]:
+                - cell [ref=f32e134]:
+                  - generic [ref=f32e135]:
+                    - link [ref=f32e136] [cursor=pointer]:
+                      - /url: /logs/ccea4bcb-5afc-4e55-8228-446583104548
+                    - link "/emails" [ref=f32e172] [cursor=pointer]:
+                      - /url: /logs/ccea4bcb-5afc-4e55-8228-446583104548
+                - cell "403" [ref=f32e173]
+                - cell "POST" [ref=f32e175]
+                - cell [ref=f32e176]:
+                  - time [ref=f32e177]: just now
+              - row [ref=f32e178]:
+                - cell [ref=f32e179]:
+                  - generic [ref=f32e180]:
+                    - link [ref=f32e181] [cursor=pointer]:
+                      - /url: /logs/d0756f99-aa0a-430b-b69b-8a552391cd2f
+                    - link "/emails" [ref=f32e217] [cursor=pointer]:
+                      - /url: /logs/d0756f99-aa0a-430b-b69b-8a552391cd2f
+                - cell "200" [ref=f32e218]
+                - cell "POST" [ref=f32e220]
+                - cell [ref=f32e221]:
+                  - time [ref=f32e222]: 3min ago
+              - row [ref=f32e223]:
+                - cell [ref=f32e224]:
+                  - generic [ref=f32e225]:
+                    - link [ref=f32e226] [cursor=pointer]:
+                      - /url: /logs/43351638-c08a-4cc8-a520-574f7ef48c28
+                    - link "/emails" [ref=f32e262] [cursor=pointer]:
+                      - /url: /logs/43351638-c08a-4cc8-a520-574f7ef48c28
+                - cell "403" [ref=f32e263]
+                - cell "POST" [ref=f32e265]
+                - cell [ref=f32e266]:
+                  - time [ref=f32e267]: 41min ago
+              - row [ref=f32e268]:
+                - cell [ref=f32e269]:
+                  - generic [ref=f32e270]:
+                    - link [ref=f32e271] [cursor=pointer]:
+                      - /url: /logs/60482da5-c6ce-496e-b13b-f50db3c92720
+                    - link "/emails" [ref=f32e307] [cursor=pointer]:
+                      - /url: /logs/60482da5-c6ce-496e-b13b-f50db3c92720
+                - cell "200" [ref=f32e308]
+                - cell "POST" [ref=f32e310]
+                - cell [ref=f32e311]:
+                  - time [ref=f32e312]: 44min ago
+              - row [ref=f32e313]:
+                - cell [ref=f32e314]:
+                  - generic [ref=f32e315]:
+                    - link [ref=f32e316] [cursor=pointer]:
+                      - /url: /logs/d1e7d5a3-453a-4aa3-b56a-d3505a47c1fa
+                    - link "/emails" [ref=f32e352] [cursor=pointer]:
+                      - /url: /logs/d1e7d5a3-453a-4aa3-b56a-d3505a47c1fa
+                - cell "403" [ref=f32e353]
+                - cell "POST" [ref=f32e355]
+                - cell [ref=f32e356]:
+                  - time [ref=f32e357]: 45min ago
+              - row [ref=f32e358]:
+                - cell [ref=f32e359]:
+                  - generic [ref=f32e360]:
+                    - link [ref=f32e361] [cursor=pointer]:
+                      - /url: /logs/1badf372-e3e8-4832-98ef-f88383dbddfe
+                    - link "/emails" [ref=f32e397] [cursor=pointer]:
+                      - /url: /logs/1badf372-e3e8-4832-98ef-f88383dbddfe
+                - cell "200" [ref=f32e398]
+                - cell "POST" [ref=f32e400]
+                - cell [ref=f32e401]:
+                  - time [ref=f32e402]: 48min ago
+          - generic [ref=f32e404]:
+            - text: Page 1 – 1 of 6 logs –
+            - combobox "Items per page" [ref=f32e405] [cursor=pointer]:
+              - generic [ref=f32e406]: 40 items
+            - textbox [aria-hidden] [ref=f32e409]: "40"
+    - generic [ref=f32e413]:
+      - 'link "Docs: /docs/dashboard/logs/introduction"':
+        - /url: https://resend.com/docs/dashboard/logs/introduction
+        - generic [ref=f32e414] [cursor=pointer]: /docs
+        - generic: /logs
+      - button "Ask anything" [ref=f32e422] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=f32e664]

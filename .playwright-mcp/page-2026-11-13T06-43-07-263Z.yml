@@ -1,0 +1,137 @@
+- generic:
+  - generic [ref=f16e1]:
+    - generic [ref=f16e5]:
+      - complementary [ref=f16e7]:
+        - button "1 1498690093" [ref=f16e9] [cursor=pointer]:
+          - generic [ref=f16e11]:
+            - generic [ref=f16e12]: "1"
+            - generic [ref=f16e28]: "1498690093"
+        - navigation [ref=f16e33]:
+          - list [ref=f16e34]:
+            - listitem [ref=f16e35]:
+              - link "Emails" [ref=f16e36] [cursor=pointer]:
+                - /url: /emails
+            - listitem [ref=f16e45]:
+              - link "Templates" [ref=f16e46] [cursor=pointer]:
+                - /url: /templates
+            - listitem [ref=f16e61]:
+              - link "Audience" [ref=f16e62] [cursor=pointer]:
+                - /url: /audience
+          - separator [aria-hidden] [ref=f16e80]
+          - list [ref=f16e81]:
+            - listitem [ref=f16e82]:
+              - link "Inboxes" [ref=f16e83] [cursor=pointer]:
+                - /url: /inboxes
+            - listitem [ref=f16e93]:
+              - link "Broadcasts" [ref=f16e94] [cursor=pointer]:
+                - /url: /broadcasts
+            - listitem [ref=f16e109]:
+              - link "Automations" [ref=f16e110] [cursor=pointer]:
+                - /url: /automations
+          - separator [aria-hidden] [ref=f16e119]
+          - list [ref=f16e120]:
+            - listitem [ref=f16e121]:
+              - link "Metrics" [ref=f16e122] [cursor=pointer]:
+                - /url: /metrics
+            - listitem [ref=f16e137]:
+              - link "Domains" [ref=f16e138] [cursor=pointer]:
+                - /url: /domains
+            - listitem [ref=f16e223]:
+              - link "Logs" [ref=f16e224] [cursor=pointer]:
+                - /url: /logs
+            - listitem [ref=f16e245]:
+              - link "API keys" [ref=f16e246] [cursor=pointer]:
+                - /url: /api-keys
+            - listitem [ref=f16e265]:
+              - link "Webhooks" [ref=f16e266] [cursor=pointer]:
+                - /url: /webhooks
+            - listitem [ref=f16e284]:
+              - link "Settings" [ref=f16e285] [cursor=pointer]:
+                - /url: /settings
+        - generic [ref=f16e296]:
+          - button "Appearance" [ref=f16e297] [cursor=pointer]
+          - generic [ref=f16e301]:
+            - button "Feedback" [ref=f16e302] [cursor=pointer]
+            - link "Help" [ref=f16e306] [cursor=pointer]:
+              - /url: /help
+      - generic [ref=f16e310]:
+        - generic [ref=f16e405]:
+          - heading "Add domain" [level=1] [ref=f16e406]
+          - text: Use a domain you own to send and receive emails.
+        - generic [ref=f16e410]:
+          - generic [ref=f16e416]:
+            - heading "Domain" [level=3] [ref=f16e418]
+            - paragraph [ref=f16e419]: Domain name and region for your sending and receiving.
+            - generic [ref=f16e421]:
+              - generic [ref=f16e422]:
+                - generic [ref=f16e423]:
+                  - generic [ref=f16e424]: Name
+                  - generic [ref=f16e426]:
+                    - textbox "Name" [invalid] [ref=f16e427]:
+                      - /placeholder: updates.example.com
+                      - text: zhgyx.dpdns.org
+                    - button "View error" [ref=f16e470] [cursor=pointer]
+                - generic [ref=f16e435]:
+                  - button "Advanced options" [expanded] [active] [ref=f16e436] [cursor=pointer]
+                  - generic [ref=f16e474]:
+                    - generic [ref=f16e475]:
+                      - generic [ref=f16e476]: Region
+                      - generic [ref=f16e478]:
+                        - combobox "Region" [ref=f16e479] [cursor=pointer]:
+                          - generic [ref=f16e483]:
+                            - img "North Virginia" [ref=f16e484]
+                            - generic [ref=f16e485]:
+                              - text: North Virginia
+                              - generic [ref=f16e486]: (us-east-1)
+                        - textbox [aria-hidden] [ref=f16e489]: us-east-1
+                    - generic [ref=f16e490]:
+                      - generic [ref=f16e491]: Custom Return-Path
+                      - textbox "Custom Return-Path" [ref=f16e493]:
+                        - /placeholder: Add a Custom Return-Path value...
+                        - text: send
+                    - generic [ref=f16e494]:
+                      - generic [ref=f16e495]:
+                        - generic [ref=f16e496]: Tracking Subdomain
+                        - textbox "Tracking Subdomain" [ref=f16e498]:
+                          - /placeholder: links
+                      - generic:
+                        - generic: Tracking options
+                        - generic:
+                          - checkbox "Enable click tracking" [disabled]
+                          - checkbox [disabled] [aria-hidden]
+                          - generic: Enable click tracking
+                        - generic:
+                          - generic:
+                            - checkbox "Enable open tracking" [disabled]
+                            - checkbox [disabled] [aria-hidden]
+                            - generic: Enable open tracking
+                          - generic:
+                            - text: Open tracking can produce inaccurate results. Learn more and consider
+                            - link "if open tracking is right for you":
+                              - /url: https://resend.com/docs/knowledge-base/why-are-my-open-rates-not-accurate
+                            - text: .
+                - button "Add domain" [disabled] [ref=f16e441]
+              - generic [ref=f16e451]:
+                - generic [ref=f16e452]: "Y"
+                - generic [ref=f16e456]:
+                  - generic [ref=f16e457]:
+                    - generic [ref=f16e458]: Your Name
+                    - generic [ref=f16e459]:
+                      - text: <youremail@
+                      - generic [ref=f16e502]: zhgyx.dpdns.org
+                      - text: ">"
+                  - generic [ref=f16e461]: to me
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - heading "DNS Records" [level=3]
+    - generic [ref=f16e357]:
+      - 'link "Docs: /docs/dashboard/domains/introduction"':
+        - /url: https://resend.com/docs/dashboard/domains/introduction
+        - generic [ref=f16e358] [cursor=pointer]: /docs
+        - generic: /domains
+      - button "Ask anything" [ref=f16e366] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=f16e371]: Add domain · Resend

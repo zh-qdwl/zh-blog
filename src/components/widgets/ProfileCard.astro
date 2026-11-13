@@ -1,19 +1,10 @@
 ---
-import { AUTHOR, AUTHOR_ROLE, AVATAR, SOCIAL } from '../../consts';
+import { AUTHOR, AUTHOR_ROLE, AVATAR } from '../../consts';
+import { SOCIAL_LINKS, isExternalHref } from '../../lib/social';
 
-// 只渲染填了值的社交链接，留空自动隐藏
-const links = [
-  { key: 'github', label: 'GitHub', href: SOCIAL.github },
-  { key: 'gitee', label: 'Gitee', href: SOCIAL.gitee },
-  { key: 'juejin', label: '掘金', href: SOCIAL.juejin },
-  { key: 'csdn', label: 'CSDN', href: SOCIAL.csdn },
-  { key: 'email', label: 'Email', href: SOCIAL.email ? `mailto:${SOCIAL.email}` : '' },
-  { key: 'rss', label: 'RSS', href: SOCIAL.rss },
-].filter((l) => l.href);
-
-// 只有真正跳出站外的链接才开新标签页。
-// 原本是「除 email 外一律 _blank」，结果同源的 /rss.xml 也会莫名弹出新页。
-const isExternal = (href: string) => /^https?:\/\//.test(href);
+// 链接数据来自 src/lib/social.ts 单一数据源（polish-todo A1）
+const links = SOCIAL_LINKS;
+const isExternal = isExternalHref;
 ---
 
 <div class="card widget widget-profile">

@@ -1,0 +1,65 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "HOWARD" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - navigation "主导航" [ref=e5]:
+        - link "首页" [ref=e6] [cursor=pointer]:
+          - /url: /
+        - link "文章" [ref=e12] [cursor=pointer]:
+          - /url: /blog
+        - link "关于" [ref=e21] [cursor=pointer]:
+          - /url: /about
+      - generic [ref=e28]:
+        - button "搜索文章" [ref=e29] [cursor=pointer]
+        - button "切换深浅色" [ref=e33] [cursor=pointer]
+  - main [ref=e37]:
+    - article [ref=e41]:
+      - generic [ref=e42]:
+        - heading "留言" [level=1] [ref=e43]
+        - paragraph [ref=e44]: 路过留个脚印，或者聊聊你在折腾什么。看到都会回。
+        - paragraph [ref=e45]: 邮箱不会公开显示，也不会出现在页面源码里；只有我能看到，用于回复通知和显示头像。正文支持 Markdown。
+      - region "评论" [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e49]:
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - generic [ref=e54]:
+                  - generic [ref=e55]: 昵称
+                  - textbox "必填" [ref=e56]: Howard
+                - generic [ref=e57]:
+                  - generic [ref=e58]: 邮箱
+                  - textbox "必填" [ref=e59]: 1498690097@qq.com
+                - generic [ref=e60]:
+                  - generic [ref=e61]: 网址
+                  - textbox "选填" [ref=e62]
+              - generic [ref=e63]:
+                - textbox [ref=e64]
+                - generic [ref=e65]: 0/500
+            - generic [ref=e66]:
+              - link [ref=e67] [cursor=pointer]:
+                - /url: https://guides.github.com/features/mastering-markdown/
+              - button "预览" [ref=e70] [cursor=pointer]
+              - button "发送" [disabled] [ref=e71]
+          - generic [ref=e78]:
+            - text: Powered by
+            - link "Twikoo" [ref=e79] [cursor=pointer]:
+              - /url: https://twikoo.js.org
+            - text: v1.7.19
+  - contentinfo [ref=e80]:
+    - generic [ref=e81]:
+      - generic [ref=e82]: © 2026 昊. Built with Astro.
+      - generic [ref=e83]:
+        - link "归档" [ref=e84] [cursor=pointer]:
+          - /url: /archive
+        - link "分类" [ref=e85] [cursor=pointer]:
+          - /url: /categories
+        - link "标签" [ref=e86] [cursor=pointer]:
+          - /url: /tags
+      - generic [ref=e87]:
+        - link "GitHub" [ref=e88] [cursor=pointer]:
+          - /url: https://github.com/zh-qdwl
+        - link "Email" [ref=e89] [cursor=pointer]:
+          - /url: mailto:1498690097@qq.com
+        - link "RSS" [ref=e90] [cursor=pointer]:
+          - /url: /rss.xml
