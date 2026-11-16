@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getArchive } from '../lib/posts';
-import { monthDayUTC } from '../lib/format';
+import { monthDayUTC, estimateReadMinutes } from '../lib/format';
 
 const groups = await getArchive();
 const total = groups.reduce((n, g) => n + g.posts.length, 0);
@@ -13,14 +13,17 @@ const total = groups.reduce((n, g) => n + g.posts.length, 0);
 
   {groups.map((group) => (
     <section class="year-group">
-      <h2 class="year">{group.year}</h2>
+      <h2 class="year"><span class="year-text">{group.year}</span><span class="year-count">{group.posts.length} 篇</span></h2>
       <ul class="timeline">
-        {group.posts.map((post) => (
-          <li>
+        {group.posts.map((post, i) => (
+          <li style={`--i:${i % 12}`}>
             <a href={`/blog/${post.id}/`}>
               <time datetime={post.data.pubDate.toISOString()}>{monthDayUTC(post.data.pubDate)}</time>
               <span class="title">{post.data.title}</span>
-              <span class="cat">{post.data.category}</span>
+              <span class="meta">
+                <span class="cat">{post.data.category}</span>
+                <span class="read">约 {estimateReadMinutes(post.body ?? '')} 分钟</span>
+              </span>
             </a>
           </li>
         ))}
@@ -40,18 +43,35 @@ const total = groups.reduce((n, g) => n + g.posts.length, 0);
     font-weight: 400;
   }
   .year-group {
-    margin-bottom: 32px;
+    margin-bottom: 36px;
   }
+  /* 年份节点：贴在时间线上的大字块，右侧跟一篇数 */
   .year {
-    margin: 0 0 8px;
-    font-size: 1.3rem;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 4px;
+    padding-left: 26px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .year-count {
+    font-size: 0.85rem;
+    font-weight: 400;
     color: var(--text-soft);
   }
+  /* 时间线主体：左侧竖线 + 圆点 */
   .timeline {
     list-style: none;
     margin: 0;
-    padding: 0 0 0 16px;
+    padding: 4px 0 0 26px;
     border-left: 2px solid var(--border);
+  }
+  .timeline li {
+    /* 逐条渐进入场，与 PostCard 的 --i 模式一致；封顶 12 条避免长列表延迟累加 */
+    animation: fade-up 0.4s var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
   }
   .timeline li a {
     display: flex;
@@ -62,16 +82,23 @@ const total = groups.reduce((n, g) => n + g.posts.length, 0);
     color: var(--text);
     position: relative;
   }
-  /* 时间线上的圆点 */
+  /* 时间线上的圆点：空心圆环，hover 时填充品牌色并轻微放大 */
   .timeline li a::before {
     content: '';
     position: absolute;
-    left: -21px;
-    top: 17px;
-    width: 8px;
-    height: 8px;
+    left: -32px;
+    top: 16px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
-    background: var(--border);
+    border: 2px solid var(--border);
+    background: var(--bg);
+    box-sizing: content-box;
+    margin-left: -4px;
+    transition:
+      background var(--dur) var(--ease),
+      border-color var(--dur) var(--ease),
+      transform var(--dur) var(--ease);
   }
   .timeline li a:hover {
     background: var(--bg-soft);
@@ -79,9 +106,12 @@ const total = groups.reduce((n, g) => n + g.posts.length, 0);
   }
   .timeline li a:hover::before {
     background: var(--brand);
+    border-color: var(--brand);
+    transform: scale(1.15);
   }
   .timeline time {
     flex-shrink: 0;
+    width: 44px;
     color: var(--text-soft);
     font-size: 0.85rem;
     font-family: var(--font-mono);
@@ -93,15 +123,36 @@ const total = groups.reduce((n, g) => n + g.posts.length, 0);
   .timeline li a:hover .title {
     color: var(--link);
   }
-  .cat {
+  .meta {
     flex-shrink: 0;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  .cat {
     color: var(--text-soft);
     font-size: 0.8rem;
   }
+  .read {
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
 
-  @media (max-width: 560px) {
+  @media (max-width: 640px) {
+    /* 窄屏：分类收起，阅读时长保留（它比分类更有用且每条都不同） */
     .cat {
       display: none;
+    }
+    .year {
+      font-size: 1.35rem;
+      padding-left: 24px;
+    }
+    .timeline {
+      padding-left: 24px;
+    }
+    .timeline li a::before {
+      left: -30px;
     }
   }
 </style>
