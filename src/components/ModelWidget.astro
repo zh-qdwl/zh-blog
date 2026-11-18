@@ -4,7 +4,7 @@
 ---
 <div id="model-widget" class="model-widget" data-mode="off">
   <canvas id="live2d-container" class="model-stage" width="300" height="400"></canvas>
-  <canvas id="vrm-stage" class="model-stage" width="280" height="340"></canvas>
+  <canvas id="vrm-stage" class="model-stage" width="170" height="210"></canvas>
   <div class="model-switch" role="group" aria-label="看板娘切换">
     <button class="ms-btn" data-mode="2d" title="Live2D 看板娘">2D</button>
     <button class="ms-btn" data-mode="3d" title="3D 看板娘">3D</button>
@@ -52,10 +52,10 @@
       const { VRMLoaderPlugin, VRMUtils }: any = await import('https://esm.sh/@pixiv/three-vrm@3?deps=three@0.180.0');
       const canvas = document.getElementById('vrm-stage') as HTMLCanvasElement;
       const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      renderer.setSize(280, 340, false);
+      renderer.setSize(170, 210, false);
       const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(22, 280 / 340, 0.1, 50);
-      camera.position.set(0, 1.28, 1.7);
+      const camera = new THREE.PerspectiveCamera(22, 170 / 210, 0.1, 50);
+      camera.position.set(0, 1.28, 2.6);
 
       const light = new THREE.DirectionalLight(0xffffff, Math.PI);
       light.position.set(1, 2, 2).normalize();
@@ -139,9 +139,14 @@ const saved = urlMode === '2d' || urlMode === '3d' ? urlMode : (localStorage.get
   #vrm-stage.is-visible {
     display: block;
   }
+  /* 缩小模型在页面上的占比：transform 不影响 canvas 内部分辨率，只改显示大小 */
+  #live2d-container {
+    transform: scale(0.62);
+    transform-origin: left bottom;
+  }
   #vrm-stage {
-    width: 280px;
-    height: 340px;
+    width: 170px;
+    height: 210px;
   }
   /* live2d-widget 自己生成的 canvas 定位到容器左下 */
   #live2d-container :global(canvas) {
