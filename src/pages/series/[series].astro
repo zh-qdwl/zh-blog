@@ -1,0 +1,77 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import { getSeries, type Post } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  const series = await getSeries();
+  return series.map((g) => ({
+    params: { series: g.name },
+    props: { name: g.name, posts: g.posts },
+  }));
+}
+
+const { name, posts } = Astro.props as { name: string; posts: Post[] };
+---
+
+<BaseLayout title={`系列：${name}`} description={`系列「${name}」的全部 ${posts.length} 篇文章，按写作顺序排列`} layout="sidebar">
+  <p class="crumb"><a href="/series">系列</a> /</p>
+  <h1 class="page-title">{name} <span class="count">{posts.length} 篇</span></h1>
+  <ol class="series-toc">
+    {posts.map((post, i) => (
+      <li>
+        <span class="idx">{i + 1}</span>
+        <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+        <span class="date"><FormattedDate date={post.data.pubDate} /></span>
+      </li>
+    ))}
+  </ol>
+</BaseLayout>
+
+<style>
+  .count {
+    color: var(--text-soft);
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .series-toc {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+  }
+  .series-toc li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .idx {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--text-soft);
+  }
+  .series-toc a {
+    flex: 1;
+    font-weight: 600;
+  }
+  .series-toc a:hover {
+    color: var(--brand);
+  }
+  .date {
+    color: var(--text-soft);
+    font-size: 0.85rem;
+  }
+  @media (max-width: 640px) {
+    .date {
+      display: none;
+    }
+  }
+</style>

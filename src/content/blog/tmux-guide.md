@@ -3,6 +3,7 @@ title: tmux 实用指南：会话、窗口与窗格
 description: 从 server / session / window / pane 四层模型入手，把常用命令串成一条线——顺带纠正几个流传很广的错误快捷键，以及「窗口被压小」的根因和三种解法。
 pubDate: 2026-08-14
 category: 教程
+series: 终端效率工具
 tags: ['tmux', 'Linux', '教程']
 ---
 

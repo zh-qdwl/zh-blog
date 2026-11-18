@@ -3,6 +3,7 @@ title: 用 GVM 管理多版本 Go：安装、切换与那些坑
 description: 从依赖环境到日常命令，把 GVM 讲清楚——包括 Go 1.5 之后的 bootstrap 链条为什么存在、-B 参数在什么时候能救命，以及哪些场景其实不该用它。
 pubDate: 2026-08-14
 category: 教程
+series: 终端效率工具
 tags: ['Go', 'GVM', '教程']
 ---
 

@@ -20,6 +20,8 @@ export type PostLike = {
 
 export type Counted = { name: string; count: number };
 export type ArchiveGroup<T> = { year: number; posts: T[] };
+export type SeriesGroup<T> = { name: string; posts: T[] };
+export type Neighbors<T> = { prev: T | null; next: T | null };
 export type Stats = { postCount: number; tagCount: number; categoryCount: number };
 
 /** 剔除草稿 */
@@ -84,4 +86,50 @@ export function computeStats(posts: PostLike[]): Stats {
     tagCount: groupByTag(posts).length,
     categoryCount: groupByCategory(posts).length,
   };
+}
+
+/** 系列内阅读顺序：发布日期升序（写作顺序即阅读顺序） */
+function sortByDateAsc<T extends PostLike>(posts: T[]): T[] {
+  return [...posts].sort((a, b) => a.data.pubDate.valueOf() - b.data.pubDate.valueOf());
+}
+
+/**
+ * 上一篇/下一篇导航。
+ * 属于系列时只在系列内移动（按写作顺序）；否则按全站发布时间线。
+ * prev = 更早的一篇，next = 更晚的一篇。
+ */
+export function getNeighbors<T extends PostLike>(
+  posts: T[],
+  currentId: string,
+  series?: string,
+): Neighbors<T> {
+  const pool = series
+    ? posts.filter((p) => p.data.series === series)
+    : posts.filter((p) => !p.data.series);
+  const line = sortByDateAsc(pool);
+  const i = line.findIndex((p) => p.id === currentId);
+  if (i === -1) return { prev: null, next: null };
+  return { prev: line[i - 1] ?? null, next: line[i + 1] ?? null };
+}
+
+/**
+ * 按系列分组：只收有 series 字段的文章，组内按写作顺序，
+ * 系列之间按最近一篇文章的日期倒序（最近更新的系列在前）。
+ */
+export function groupBySeries<T extends PostLike>(posts: T[]): SeriesGroup<T>[] {
+  const map = new Map<string, T[]>();
+  for (const p of posts) {
+    const s = p.data.series;
+    if (!s) continue;
+    const bucket = map.get(s);
+    if (bucket) bucket.push(p);
+    else map.set(s, [p]);
+  }
+  return [...map.entries()]
+    .map(([name, posts]) => ({ name, posts: sortByDateAsc(posts) }))
+    .sort((a, b) => {
+      const la = a.posts[a.posts.length - 1]!.data.pubDate.valueOf();
+      const lb = b.posts[b.posts.length - 1]!.data.pubDate.valueOf();
+      return lb - la;
+    });
 }

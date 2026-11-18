@@ -7,9 +7,11 @@ import {
   groupByCategory,
   groupByTag,
   groupByYear,
+  groupBySeries,
   computeStats,
   type ArchiveGroup,
   type Counted,
+  type SeriesGroup,
   type Stats,
 } from './posts-core';
 
@@ -44,4 +46,9 @@ export async function getArchive(): Promise<ArchiveGroup<Post>[]> {
 
 export async function getStats(): Promise<Stats> {
   return computeStats(await getPublishedPosts());
+}
+
+/** 全部系列专栏，系列间按最近更新倒序，系列内按写作顺序 */
+export async function getSeries(): Promise<SeriesGroup<Post>[]> {
+  return groupBySeries(await getPublishedPosts());
 }

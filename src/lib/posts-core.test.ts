@@ -177,3 +177,70 @@ describe('groupByYear UTC 归组', () => {
     expect(groups[1].posts[0].id).toBe('a');
   });
 });
+
+// ===== getNeighbors / groupBySeries =====
+
+import { getNeighbors, groupBySeries } from './posts-core';
+
+function mk(id: string, pubDate: string, series?: string): PostLike {
+  return {
+    id,
+    data: {
+      title: id,
+      description: '',
+      pubDate: new Date(pubDate),
+      tags: [],
+      category: 't',
+      pinned: false,
+      featured: false,
+      draft: false,
+      ...(series ? { series } : {}),
+    },
+  };
+}
+
+describe('getNeighbors', () => {
+  const posts = [mk('a', '2026-01-01'), mk('b', '2026-01-02'), mk('c', '2026-01-03')];
+
+  it('时间线模式：prev 更早、next 更晚', () => {
+    expect(getNeighbors(posts, 'b')).toEqual({ prev: posts[0], next: posts[2] });
+  });
+  it('边界：最早的没有 prev，最晚的没有 next', () => {
+    expect(getNeighbors(posts, 'a').prev).toBeNull();
+    expect(getNeighbors(posts, 'c').next).toBeNull();
+  });
+  it('系列模式：只在同系列内移动，独立文章互不干扰', () => {
+    const s1 = [mk('s1a', '2026-02-01', 'Go 系列'), mk('s1b', '2026-02-02', 'Go 系列')];
+    const all = [...posts, ...s1];
+    expect(getNeighbors(all, 's1a', 'Go 系列')).toEqual({ prev: null, next: s1[1] });
+    expect(getNeighbors(all, 's1b', 'Go 系列')).toEqual({ prev: s1[0], next: null });
+  });
+  it('系列内按写作顺序（升序）而非数组传入顺序', () => {
+    const s = [mk('x2', '2026-03-02', 'S'), mk('x1', '2026-03-01', 'S')];
+    expect(getNeighbors(s, 'x2', 'S')).toEqual({ prev: s[1], next: null });
+  });
+  it('找不到文章返回双 null', () => {
+    expect(getNeighbors(posts, 'ghost')).toEqual({ prev: null, next: null });
+  });
+});
+
+describe('groupBySeries', () => {
+  it('只收有 series 的文章，组内按写作顺序', () => {
+    const posts = [mk('a', '2026-01-01'), mk('s2', '2026-01-02', 'S'), mk('s1', '2026-01-01', 'S')];
+    const groups = groupBySeries(posts);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe('S');
+    expect(groups[0].posts.map((p) => p.id)).toEqual(['s1', 's2']);
+  });
+  it('系列之间按最近一篇文章倒序', () => {
+    const posts = [
+      mk('old1', '2026-01-01', '旧系列'),
+      mk('old2', '2026-01-05', '旧系列'),
+      mk('new1', '2026-02-01', '新系列'),
+    ];
+    expect(groupBySeries(posts).map((g) => g.name)).toEqual(['新系列', '旧系列']);
+  });
+  it('空输入返回空数组', () => {
+    expect(groupBySeries([])).toEqual([]);
+  });
+});

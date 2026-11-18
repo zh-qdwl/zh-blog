@@ -41,6 +41,7 @@ export const NAV_LINKS = [
       { href: '/blog', label: '全部文章' },
       { href: '/categories', label: '分类' },
       { href: '/tags', label: '标签' },
+      { href: '/series', label: '系列' },
       { href: '/archive', label: '归档' },
     ],
   },

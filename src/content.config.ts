@@ -19,6 +19,9 @@ const blog = defineCollection({
     pinned: z.boolean().default(false),
     // 作者精选：在侧栏「作者精选」widget 中列出
     featured: z.boolean().default(false),
+    // 系列专栏：同名 series 的文章归为一个系列，按发布日期升序为阅读顺序。
+    // 不填则不属于任何系列；文章页顶部显示系列进度，底部导航优先走系列顺序。
+    series: z.string().optional(),
     draft: z.boolean().default(false),
   }),
 });

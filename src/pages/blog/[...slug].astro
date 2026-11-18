@@ -6,18 +6,35 @@ import FormattedDate from '../../components/FormattedDate.astro';
 import Toc from '../../components/Toc.astro';
 import Comments from '../../components/Comments.astro';
 import { getPublishedPosts, type Post } from '../../lib/posts';
+import { getNeighbors, groupBySeries } from '../../lib/posts-core';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
+  // 系列进度在构建期一次性算好传给每个页面，避免每页重复扫描全量文章
+  const seriesProgress: Record<string, { index: number; total: number }> = {};
+  for (const g of groupBySeries(posts)) {
+    g.posts.forEach((p, i) => {
+      seriesProgress[p.id] = { index: i, total: g.posts.length };
+    });
+  }
   return posts.map((post) => ({
     params: { slug: post.id },
-    props: post,
+    props: { post, seriesProgress, sortedPosts: posts },
   }));
 }
 
-const post = Astro.props as Post;
+type Props = {
+  post: Post;
+  seriesProgress: Record<string, { index: number; total: number }>;
+  sortedPosts: Post[];
+};
+
+const { post, seriesProgress, sortedPosts } = Astro.props as Props;
 const { Content, headings } = await render(post);
-const { title, description, pubDate, updatedDate, tags, category } = post.data;
+const { title, description, pubDate, updatedDate, tags, category, series } = post.data;
+// 有系列时只在系列内导航（按写作顺序），否则走全站时间线
+const { prev, next } = getNeighbors(sortedPosts, post.id, series);
+const progress = series ? seriesProgress[post.id] : undefined;
 ---
 
 <BaseLayout title={title} description={description} layout="toc">
@@ -26,6 +43,12 @@ const { title, description, pubDate, updatedDate, tags, category } = post.data;
   <article class="article-body">
     <a href="/blog" class="back-link">← 返回文章列表</a>
     <header class="article-header">
+      {series && progress && (
+        <a class="series-banner" href={`/series/${encodeURIComponent(series)}/`}>
+          <span class="sb-name">《{series}》系列</span>
+          <span class="sb-pos">第 {progress.index + 1} / {progress.total} 篇</span>
+        </a>
+      )}
       <a class="category" href={`/categories/${encodeURIComponent(category)}/`}>{category}</a>
       <h1>{title}</h1>
       <div class="post-meta">
@@ -46,6 +69,32 @@ const { title, description, pubDate, updatedDate, tags, category } = post.data;
       <Content />
     </div>
     <Comments />
+    {(prev || next) && (
+      <nav class="post-nav" aria-label="上一篇与下一篇">
+        {prev ? (
+          <a class="nav-card" href={`/blog/${prev.id}/`} rel="prev">
+            <span class="nav-label">← 上一篇</span>
+            <span class="nav-title">{prev.data.title}</span>
+          </a>
+        ) : (
+          <div class="nav-card is-empty" aria-hidden="true">
+            <span class="nav-label">← 上一篇</span>
+            <span class="nav-title">{series ? '已是系列第一篇' : '已是最新一篇'}</span>
+          </div>
+        )}
+        {next ? (
+          <a class="nav-card is-next" href={`/blog/${next.id}/`} rel="next">
+            <span class="nav-label">下一篇 →</span>
+            <span class="nav-title">{next.data.title}</span>
+          </a>
+        ) : (
+          <div class="nav-card is-empty is-next" aria-hidden="true">
+            <span class="nav-label">下一篇 →</span>
+            <span class="nav-title">{series ? '已是系列最后一篇' : '没有更早的文章了'}</span>
+          </div>
+        )}
+      </nav>
+    )}
   </article>
 </BaseLayout>
 
@@ -70,10 +119,77 @@ const { title, description, pubDate, updatedDate, tags, category } = post.data;
     font-size: clamp(1.6rem, 3.5vw, 2.1rem);
     margin: 8px 0 12px;
   }
-
+  .series-banner {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    transition: border-color 0.15s ease;
+  }
+  .series-banner:hover {
+    border-color: var(--brand);
+    text-decoration: none;
+  }
+  .sb-name {
+    font-weight: 600;
+    color: var(--brand);
+  }
+  .sb-pos {
+    color: var(--text-soft);
+    font-size: 0.8rem;
+  }
+  .post-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 48px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+  .nav-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  a.nav-card:hover {
+    border-color: var(--brand);
+    box-shadow: var(--shadow-lift);
+    text-decoration: none;
+  }
+  .nav-card.is-empty {
+    opacity: 0.55;
+  }
+  .nav-card.is-next {
+    text-align: right;
+    align-items: flex-end;
+  }
+  .nav-label {
+    color: var(--text-soft);
+    font-size: 0.8rem;
+  }
+  .nav-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
   @media (max-width: 640px) {
     .article-header {
       margin-bottom: 24px;
+    }
+    .post-nav {
+      grid-template-columns: 1fr;
+    }
+    .nav-card.is-next {
+      text-align: left;
+      align-items: flex-start;
     }
   }
 </style>
