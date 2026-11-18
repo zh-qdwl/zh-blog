@@ -3,7 +3,7 @@
 // 两个库都按需加载：只有用户选中对应模式才拉取脚本/模型，默认关闭零开销。
 ---
 <div id="model-widget" class="model-widget" data-mode="off">
-  <div id="live2d-container" class="model-stage"></div>
+  <canvas id="live2d-container" class="model-stage" width="300" height="400"></canvas>
   <canvas id="vrm-stage" class="model-stage" width="280" height="340"></canvas>
   <div class="model-switch" role="group" aria-label="看板娘切换">
     <button class="ms-btn" data-mode="2d" title="Live2D 看板娘">2D</button>
@@ -25,6 +25,7 @@
     s.src = 'https://fastly.jsdelivr.net/gh/stevenjoezhang/live2d-widget/live2d.min.js';
     s.onload = () => {
       l2dLoading = false;
+      document.querySelector(`.ms-btn[data-mode='2d']`)?.classList.remove('is-loading');
       if ((widget()?.dataset.mode ?? 'off') === '2d') mount2D();
     };
     document.head.appendChild(s);
@@ -47,6 +48,7 @@
     vrmState = 'loading';
     try {
       const THREE: any = await import('https://esm.sh/three@0.180.0');
+      const { GLTFLoader } = await import('https://esm.sh/three@0.180.0/examples/jsm/loaders/GLTFLoader.js?deps=three@0.180.0');
       const { VRMLoaderPlugin, VRMUtils }: any = await import('https://esm.sh/@pixiv/three-vrm@3?deps=three@0.180.0');
       const canvas = document.getElementById('vrm-stage') as HTMLCanvasElement;
       const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
@@ -59,7 +61,7 @@
       light.position.set(1, 2, 2).normalize();
       scene.add(light);
 
-      const loader = new THREE.GLTFLoader();
+      const loader = new GLTFLoader();
       loader.register((parser: any) => new VRMLoaderPlugin(parser));
       const gltf = await loader.loadAsync(
         'https://cdn.jsdelivr.net/gh/vrm-c/vrm-specification@master/samples/Seed-san/vrm/Seed-san.vrm');
@@ -67,12 +69,15 @@
       VRMUtils.removeUnnecessaryJoints(gltf.scene);
       scene.add(gltf.scene);
 
-      // 鼠标视线跟随
+      // 鼠标视线跟随：lookAt.target 需要真实的 Object3D 挂进场景
+      const lookTarget = new THREE.Object3D();
+      scene.add(lookTarget);
+      if (vrm.lookAt) vrm.lookAt.target = lookTarget;
       window.addEventListener('pointermove', (e) => {
-        if (!vrm) return;
+        if (!vrm || !vrm.lookAt) return;
         const x = (e.clientX / window.innerWidth) * 2 - 1;
         const y = (e.clientY / window.innerHeight) * 2 - 1;
-        vrm.lookAt.target.set(x * 2, 1.4 - y * 1.2, 1.6);
+        lookTarget.position.set(x * 2, 1.4 - y * 1.2, 1.6);
       });
 
       const clock = new THREE.Clock();
@@ -84,6 +89,7 @@
       })();
 
       vrmState = 'ready';
+      document.querySelector(`.ms-btn[data-mode='3d']`)?.classList.remove('is-loading');
       if ((widget()?.dataset.mode ?? 'off') === '3d') canvas.classList.add('is-visible');
     } catch (err) {
       console.error('[kanban 3D] 加载失败', err);
@@ -102,6 +108,8 @@
     if (l2d) l2d.classList.toggle('is-visible', mode === '2d');
     if (mode === '2d') load2D();
     if (mode === '3d') load3D();
+    const b = w.querySelector(`.ms-btn[data-mode='${mode}']`);
+    if (b) b.classList.add('is-loading');
     if (mode === '2d' && window.loadlive2d) mount2D();
   }
 
@@ -110,8 +118,8 @@
   });
   // 支持 ?kanban=2d/3d 强制模式（调试和自动化测试用），优先级高于 localStorage
 const urlMode = new URLSearchParams(location.search).get('kanban');
-const saved = urlMode === '2d' || urlMode === '3d' ? urlMode : localStorage.getItem(KEY);
-  // 不做自动恢复首选项以外的事：存了什么用什么，没存默认关闭
+const saved = urlMode === '2d' || urlMode === '3d' ? urlMode : (localStorage.getItem(KEY) ?? '2d'); // 默认 2D
+  // 没有历史选择时默认开启 2D
   if (saved === '2d' || saved === '3d') applyMode(saved);
 </script>
 
@@ -161,6 +169,13 @@ const saved = urlMode === '2d' || urlMode === '3d' ? urlMode : localStorage.getI
   .ms-btn:hover {
     border-color: var(--brand);
     color: var(--text);
+  }
+  .ms-btn.is-loading {
+    animation: ms-pulse 1s ease-in-out infinite;
+  }
+  @keyframes ms-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
   }
   /* 当前模式高亮 */
   .model-widget[data-mode='2d'] .ms-btn[data-mode='2d'],
