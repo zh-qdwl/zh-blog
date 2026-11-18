@@ -1,0 +1,176 @@
+---
+// 左下角看板娘挂件：2D(Live2D) / 3D(VRM) 可切换，选择存 localStorage。
+// 两个库都按需加载：只有用户选中对应模式才拉取脚本/模型，默认关闭零开销。
+---
+<div id="model-widget" class="model-widget" data-mode="off">
+  <div id="live2d-container" class="model-stage"></div>
+  <canvas id="vrm-stage" class="model-stage" width="280" height="340"></canvas>
+  <div class="model-switch" role="group" aria-label="看板娘切换">
+    <button class="ms-btn" data-mode="2d" title="Live2D 看板娘">2D</button>
+    <button class="ms-btn" data-mode="3d" title="3D 看板娘">3D</button>
+    <button class="ms-btn" data-mode="off" title="关闭看板娘">×</button>
+  </div>
+</div>
+
+<script>
+  const KEY = 'kanban-mode';
+  const widget = () => document.getElementById('model-widget');
+
+  /* ---------- 2D: stevenjoezhang/live2d-widget ---------- */
+  let l2dLoading = false;
+  function load2D() {
+    if (window.loadlive2d || l2dLoading) return;
+    l2dLoading = true;
+    const s = document.createElement('script');
+    s.src = 'https://fastly.jsdelivr.net/gh/stevenjoezhang/live2d-widget/live2d.min.js';
+    s.onload = () => {
+      l2dLoading = false;
+      if ((widget()?.dataset.mode ?? 'off') === '2d') mount2D();
+    };
+    document.head.appendChild(s);
+  }
+  function mount2D() {
+    const el = document.getElementById('live2d-container');
+    if (!el || !window.loadlive2d) return;
+    window.loadlive2d('live2d-container',
+      'https://cdn.jsdelivr.net/npm/live2d-widget-model-shizuku@1.0.5/assets/shizuku.model.json');
+  }
+
+  /* ---------- 3D: three + @pixiv/three-vrm (esm.sh 动态 import) ---------- */
+  let vrmState: 'none' | 'loading' | 'ready' = 'none';
+  // renderer/scene 是模块级的，切走时只隐藏 canvas 不销毁，切回来零成本
+  let vrm: any = null;
+  let vrmClock = 0;
+
+  async function load3D() {
+    if (vrmState !== 'none') return;
+    vrmState = 'loading';
+    try {
+      const THREE: any = await import('https://esm.sh/three@0.180.0');
+      const { VRMLoaderPlugin, VRMUtils }: any = await import('https://esm.sh/@pixiv/three-vrm@3?deps=three@0.180.0');
+      const canvas = document.getElementById('vrm-stage') as HTMLCanvasElement;
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+      renderer.setSize(280, 340, false);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(22, 280 / 340, 0.1, 50);
+      camera.position.set(0, 1.28, 1.7);
+
+      const light = new THREE.DirectionalLight(0xffffff, Math.PI);
+      light.position.set(1, 2, 2).normalize();
+      scene.add(light);
+
+      const loader = new THREE.GLTFLoader();
+      loader.register((parser: any) => new VRMLoaderPlugin(parser));
+      const gltf = await loader.loadAsync(
+        'https://cdn.jsdelivr.net/gh/vrm-c/vrm-specification@master/samples/Seed-san/vrm/Seed-san.vrm');
+      vrm = gltf.userData.vrm;
+      VRMUtils.removeUnnecessaryJoints(gltf.scene);
+      scene.add(gltf.scene);
+
+      // 鼠标视线跟随
+      window.addEventListener('pointermove', (e) => {
+        if (!vrm) return;
+        const x = (e.clientX / window.innerWidth) * 2 - 1;
+        const y = (e.clientY / window.innerHeight) * 2 - 1;
+        vrm.lookAt.target.set(x * 2, 1.4 - y * 1.2, 1.6);
+      });
+
+      const clock = new THREE.Clock();
+      (function tick() {
+        requestAnimationFrame(tick);
+        if (!vrm || (widget()?.dataset.mode ?? 'off') !== '3d') return;
+        vrm.update(clock.getDelta());
+        renderer.render(scene, camera);
+      })();
+
+      vrmState = 'ready';
+      if ((widget()?.dataset.mode ?? 'off') === '3d') canvas.classList.add('is-visible');
+    } catch (err) {
+      console.error('[kanban 3D] 加载失败', err);
+      vrmState = 'none';
+    }
+  }
+
+  /* ---------- 模式切换 ---------- */
+  function applyMode(mode: '2d' | '3d' | 'off') {
+    const w = widget();
+    if (!w) return;
+    w.dataset.mode = mode;
+    localStorage.setItem(KEY, mode);
+    document.getElementById('vrm-stage')?.classList.toggle('is-visible', mode === '3d');
+    const l2d = document.getElementById('live2d-container');
+    if (l2d) l2d.classList.toggle('is-visible', mode === '2d');
+    if (mode === '2d') load2D();
+    if (mode === '3d') load3D();
+    if (mode === '2d' && window.loadlive2d) mount2D();
+  }
+
+  document.querySelectorAll('.ms-btn').forEach((btn) => {
+    btn.addEventListener('click', () => applyMode(btn.dataset.mode as any));
+  });
+  // 支持 ?kanban=2d/3d 强制模式（调试和自动化测试用），优先级高于 localStorage
+const urlMode = new URLSearchParams(location.search).get('kanban');
+const saved = urlMode === '2d' || urlMode === '3d' ? urlMode : localStorage.getItem(KEY);
+  // 不做自动恢复首选项以外的事：存了什么用什么，没存默认关闭
+  if (saved === '2d' || saved === '3d') applyMode(saved);
+</script>
+
+<style>
+  .model-widget {
+    position: fixed;
+    left: 8px;
+    bottom: 0;
+    z-index: 90;
+    pointer-events: none; /* 容器不挡点击，只有子元素自己开 */
+  }
+  .model-stage {
+    display: none;
+    pointer-events: auto;
+  }
+  #live2d-container.is-visible,
+  #vrm-stage.is-visible {
+    display: block;
+  }
+  #vrm-stage {
+    width: 280px;
+    height: 340px;
+  }
+  /* live2d-widget 自己生成的 canvas 定位到容器左下 */
+  #live2d-container :global(canvas) {
+    position: static !important;
+  }
+  .model-switch {
+    position: absolute;
+    right: -4px;
+    bottom: 6px;
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+  }
+  .ms-btn {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--background);
+    color: var(--text-soft);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .ms-btn:hover {
+    border-color: var(--brand);
+    color: var(--text);
+  }
+  /* 当前模式高亮 */
+  .model-widget[data-mode='2d'] .ms-btn[data-mode='2d'],
+  .model-widget[data-mode='3d'] .ms-btn[data-mode='3d'] {
+    border-color: var(--brand);
+    color: var(--brand);
+    font-weight: 700;
+  }
+  @media (max-width: 640px) {
+    .model-widget {
+      display: none; /* 手机上收起，避免挡内容 */
+    }
+  }
+</style>
