@@ -119,7 +119,7 @@ const saved = urlMode === '2d' || urlMode === '3d' ? urlMode : localStorage.getI
   .model-widget {
     position: fixed;
     left: 8px;
-    bottom: 0;
+    bottom: 36px; /* 给底部切换按钮留出高度 */
     z-index: 90;
     pointer-events: none; /* 容器不挡点击，只有子元素自己开 */
   }
@@ -140,9 +140,10 @@ const saved = urlMode === '2d' || urlMode === '3d' ? urlMode : localStorage.getI
     position: static !important;
   }
   .model-switch {
-    position: absolute;
-    right: -4px;
-    bottom: 6px;
+    /* fixed 直锚视口：舞台未开启时容器宽度为 0，absolute 的 right 偏移会把按钮推出屏幕 */
+    position: fixed;
+    left: 10px;
+    bottom: 8px;
     display: flex;
     gap: 6px;
     pointer-events: auto;
