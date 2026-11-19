@@ -421,3 +421,39 @@ main.has-hero > .page {
     align-items: flex-start;
   }
 }
+
+/* ===== 手机端专项优化（375~640px）：触控目标、阅读体验、间距收紧 =====
+   说明：tag/category 在桌面上 24px 高很精致，但指尖点按需要约 40px；
+   窄屏留给代码块的宽度只有 ~343px，字号降一档让常见行尽量不折行。 */
+@media (max-width: 640px) {
+  .tag,
+  .category,
+  .post-meta a {
+    padding: 5px 12px;
+    font-size: 0.85rem;
+  }
+  .post-meta {
+    gap: 6px 10px;
+  }
+  .prose {
+    line-height: 1.8;
+  }
+  .prose p {
+    margin: 0.9em 0;
+  }
+  .prose pre {
+    font-size: 0.82rem;
+  }
+  .prose blockquote {
+    margin: 1.2em 0;
+    padding-left: 14px;
+  }
+  .post-nav {
+    gap: 10px;
+    margin-top: 36px;
+    padding-top: 22px;
+  }
+  .nav-card {
+    padding: 11px 14px;
+  }
+}
