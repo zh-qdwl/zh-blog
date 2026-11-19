@@ -146,12 +146,13 @@ const MODELS = [
     z-index: 90;
     pointer-events: none; /* 容器不挡点击，只有子元素自己开 */
   }
-  .model-stage {
+  /* 显隐规则全部 :global：mount() 换装会动态重建 canvas（不带 scoped 属性），
+     scoped 版本对重建后的元素失效——曾导致隐藏按钮看起来"不生效" */
+  :global(.model-stage) {
     display: none;
     pointer-events: auto;
   }
-  #live2d-container.is-visible,
-  #vrm-stage.is-visible {
+  :global(#live2d-container.is-visible) {
     display: block;
   }
   /* 缩小模型在页面上的占比：transform 不影响 canvas 内部分辨率，只改显示大小。
@@ -161,10 +162,10 @@ const MODELS = [
     transform: scale(0.45);
     transform-origin: left bottom;
   }
-  .model-widget[data-mode='off'] .model-stage {
-    display: none;
+  .model-widget[data-mode='off'] :global(#live2d-container.is-visible) {
+    display: none !important; /* 压过 is-visible 的 ID 级 display:block */
   }
-  .model-widget[data-mode='2d'] #live2d-container {
+  .model-widget[data-mode='2d'] :global(#live2d-container) {
     display: block;
   }
   .model-switch {
