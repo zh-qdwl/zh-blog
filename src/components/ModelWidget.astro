@@ -175,6 +175,16 @@ const MODELS = [
     display: flex;
     gap: 6px;
     pointer-events: auto;
+    /* 默认藏起来：透明 + 略微下沉，鼠标挪到模型/按钮区域才显形 */
+    opacity: 0;
+    translate: 0 6px;
+    transition: opacity 0.2s ease, translate 0.2s ease;
+  }
+  /* 悬停模型舞台（含按钮下方热区）时显形；off 态画布没了，按钮常显 */
+  .model-widget:hover .model-switch,
+  .model-widget[data-mode='off'] .model-switch {
+    opacity: 1;
+    translate: 0 0;
   }
   .ms-btn {
     padding: 3px 10px;
