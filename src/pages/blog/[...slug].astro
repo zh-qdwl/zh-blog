@@ -40,6 +40,9 @@ const progress = series ? seriesProgress[post.id] : undefined;
 <BaseLayout title={title} description={description} layout="toc">
   <Toc slot="toc" headings={headings} />
 
+  {/* 文章页背景壁纸：fixed 全屏铺底 + 低透明度，正文卡片半透明垫底保证可读 */}
+  <div class="article-wallpaper" aria-hidden="true"></div>
+
   <article class="article-body">
     <a href="/blog" class="back-link">← 返回文章列表</a>
     <header class="article-header">
@@ -99,8 +102,27 @@ const progress = series ? seriesProgress[post.id] : undefined;
 </BaseLayout>
 
 <style>
+  .article-wallpaper {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(var(--wallpaper-veil), var(--wallpaper-veil)),
+      url('/labixiaoxin2.webp') center / cover no-repeat;
+    filter: blur(0px);
+    opacity: 1;
+    pointer-events: none;
+  }
+  /* 正文与评论区垫上半透明卡片底：壁纸在下面透出来，文字仍清晰 */
   .article-body {
     max-width: var(--maxw-prose);
+    background: var(--wallpaper-card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow);
+    padding: 28px 32px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
   .back-link {
     display: inline-block;

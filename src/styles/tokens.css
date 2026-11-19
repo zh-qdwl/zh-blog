@@ -56,6 +56,9 @@
   --bg: #ffffff;
   --bg-soft: #f6f8fb;
   --card: #ffffff;
+  /* 文章页背景壁纸：veil 压亮/压暗壁纸让正文可读；卡片底配合 backdrop-filter */
+  --wallpaper-veil: rgba(255, 255, 255, 0.82);
+  --wallpaper-card-bg: rgba(255, 255, 255, 0.88);
   --border: #e3e8ef;
   --text: #1f2328;
   --text-soft: #5b6b7f;
@@ -112,6 +115,8 @@
   --bg: #0b1220;
   --bg-soft: #131c2e;
   --card: #111a2b;
+  --wallpaper-veil: rgba(11, 18, 32, 0.84);
+  --wallpaper-card-bg: rgba(17, 26, 43, 0.88);
   --border: #1f2a3d;
   --text: #e2e8f0;
   --text-soft: #93a1b5;

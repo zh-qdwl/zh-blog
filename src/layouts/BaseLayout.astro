@@ -4,6 +4,7 @@ import Footer from '../components/Footer.astro';
 import Sidebar from '../components/Sidebar.astro';
 import SearchPanel from '../components/SearchPanel.astro';
 import ModelWidget from '../components/ModelWidget.astro';
+import FloatingActions from '../components/FloatingActions.astro';
 import { SITE_TITLE, SITE_DESCRIPTION, HERO_TONE } from '../consts';
 import '../styles/global.css';
 
@@ -68,5 +69,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <Footer />
     <SearchPanel />
     <ModelWidget />
+    <FloatingActions />
   </body>
 </html>

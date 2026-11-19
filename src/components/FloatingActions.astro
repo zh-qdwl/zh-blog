@@ -1,0 +1,82 @@
+---
+// 右下角悬浮按钮组：返回顶部 + 直达评论。
+// 仅文章页使用；评论区懒加载，滚动到锚点时由 IntersectionObserver 自然触发。
+// 回顶部按钮滚过一屏才出现，避免短文章页多一个无用按钮。
+---
+<div id="floating-actions" class="floating-actions" hidden>
+  <button class="fa-btn" id="fa-top" title="返回顶部" aria-label="返回顶部">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+  </button>
+  <button class="fa-btn" id="fa-comments" title="直达评论" aria-label="直达评论">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+  </button>
+</div>
+
+<script>
+  const box = document.getElementById('floating-actions')!;
+  const top = document.getElementById('fa-top')!;
+
+  // 回顶部按钮：滚过一屏才出现（评论区按钮常驻，它总是有用的）
+  function updateVisibility() {
+    const showTop = window.scrollY > window.innerHeight * 0.8;
+    box.hidden = !showTop;
+  }
+  window.addEventListener('scroll', updateVisibility, { passive: true });
+  updateVisibility();
+
+  top.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // 无评论区的页面（关于/友链等）不显示评论按钮
+  const commentsBtn = document.getElementById('fa-comments')!;
+  const commentsTarget = document.getElementById('comments');
+  if (!commentsTarget) commentsBtn.style.display = 'none';
+  commentsBtn.addEventListener('click', () => {
+    commentsTarget?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>
+
+<style>
+  .floating-actions {
+    position: fixed;
+    right: 18px;
+    bottom: 64px; /* 避开看板娘换装按钮区（左下角）与移动端底部 */
+    z-index: 80;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .floating-actions[hidden] {
+    display: none;
+  }
+  .fa-btn {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--background);
+    color: var(--text-soft);
+    cursor: pointer;
+    box-shadow: var(--shadow-lift, 0 4px 12px rgba(0, 0, 0, 0.08));
+    transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+  .fa-btn:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+    transform: translateY(-2px);
+  }
+  @media (max-width: 640px) {
+    .floating-actions {
+      right: 12px;
+      bottom: 18px;
+    }
+    .fa-btn {
+      width: 38px;
+      height: 38px;
+    }
+  }
+</style>
