@@ -3,8 +3,8 @@
 // live2d 库与模型按需加载，库只加载一次，换模型 = 清容器重新 loadlive2d。
 // 注意：loadlive2d 直接对容器元素调 getContext，所以容器必须是 <canvas> 而不是 div。
 const MODELS = [
-  { id: 'shizuku', label: '雫' },
   { id: 'koharu',  label: '小春' },
+  { id: 'shizuku', label: '雫' },
   { id: 'miku',    label: '初音' },
   { id: 'z16',     label: 'Z16' },
   { id: 'haruto',  label: '春人' },
@@ -27,7 +27,7 @@ const MODELS = [
 <script>
   const KEY_MODE = 'kanban-mode';
   const KEY_SKIN = 'kanban-skin';
-  const MODELS = ['shizuku', 'koharu', 'miku', 'z16', 'haruto', 'tororo', 'izumi', 'tsumiki', 'nico', 'chitose'];
+  const MODELS = ['koharu', 'shizuku', 'miku', 'z16', 'haruto', 'tororo', 'izumi', 'tsumiki', 'nico', 'chitose'];
   const CDN = (m: string) => 'https://cdn.jsdelivr.net/npm/live2d-widget-model-' + m + '@1.0.5/assets/' + m + '.model.json';
 
   const widget = () => document.getElementById('model-widget');
@@ -75,7 +75,7 @@ const MODELS = [
     skinIndex = Math.max(0, MODELS.indexOf(skin));
     localStorage.setItem(KEY_SKIN, skin);
     const label = document.getElementById('ms-skin-label');
-    if (label) label.textContent = skin === 'shizuku' ? '换装' : skin;
+    if (label) label.textContent = skin === 'koharu' ? '换装' : skin;
     // 换模型：整体替换 canvas 元素。旧模型的内部动画循环持有旧元素引用，
     // 替换后旧循环自然作废，避免过渡期 hitTest 读到已清空的模型数据而抛错。
     const fresh = document.createElement('canvas');
@@ -120,7 +120,7 @@ const MODELS = [
 
   function getSavedSkin(): string {
     const s = localStorage.getItem(KEY_SKIN);
-    return s && MODELS.includes(s) ? s : 'shizuku';
+    return s && MODELS.includes(s) ? s : 'koharu';
   }
 
   /* ---------- 初始化 ---------- */
@@ -154,9 +154,11 @@ const MODELS = [
   #vrm-stage.is-visible {
     display: block;
   }
-  /* 缩小模型在页面上的占比：transform 不影响 canvas 内部分辨率，只改显示大小 */
-  #live2d-container {
-    transform: scale(0.62);
+  /* 缩小模型在页面上的占比：transform 不影响 canvas 内部分辨率，只改显示大小。
+     :global 包裹：换装时 mount() 会动态重建 canvas（不带 astro scoped 属性），
+     scoped 选择器匹配不上重建后的元素，必须用全局选择器。 */
+  :global(#live2d-container) {
+    transform: scale(0.45);
     transform-origin: left bottom;
   }
   .model-widget[data-mode='off'] .model-stage {
