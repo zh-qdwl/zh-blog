@@ -107,13 +107,20 @@ const MODELS = [
     ensureLib(() => { mount(next); setTimeout(() => setLoading(false), 1200); });
   });
 
-  // 显示/隐藏：隐藏时收起画布只留按钮，状态持久化
+  // 显示/隐藏：收起时画布和刷新/换装一起藏，只留「+」恢复入口
+  function setActionsVisible(visible: boolean) {
+    const r = document.getElementById('ms-refresh');
+    const sk = document.getElementById('ms-skin');
+    if (r) r.style.display = visible ? '' : 'none';
+    if (sk) sk.style.display = visible ? '' : 'none';
+  }
   document.getElementById('ms-toggle')?.addEventListener('click', () => {
     const w = widget();
     if (!w) return;
     const hidden = w.dataset.mode === 'off';
     w.dataset.mode = hidden ? '2d' : 'off';
     document.getElementById('ms-toggle')!.textContent = hidden ? '–' : '+';
+    setActionsVisible(hidden); // 显示模型 → 恢复两个动作按钮；收起 → 只留 +
     localStorage.setItem(KEY_MODE, hidden ? '2d' : 'off');
     if (hidden) ensureLib(() => mount(currentSkin ?? getSavedSkin()));
   });
@@ -132,6 +139,7 @@ const MODELS = [
     if (savedMode === 'off') {
       w.dataset.mode = 'off';
       document.getElementById('ms-toggle')!.textContent = '+';
+      setActionsVisible(false);
     } else {
       ensureLib(() => mount(currentSkin!));
     }
