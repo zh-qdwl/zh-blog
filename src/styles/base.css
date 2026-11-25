@@ -26,6 +26,22 @@ a:hover {
   text-decoration: underline;
 }
 
+/* ===== 正文链接：下划线从左滑入 =====
+   只作用在 .prose 里，避免影响导航/按钮这类已有自己 hover 的地方。
+   background-size 0→100% 是纯合成层动画，不触发布局重排。 */
+.prose a {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size var(--dur) var(--ease);
+}
+.prose a:hover {
+  text-decoration: none;
+  background-size: 100% 1px;
+}
+
 h1, h2, h3, h4 {
   line-height: 1.3;
   font-weight: 700;
@@ -73,6 +89,45 @@ hr {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow);
+}
+
+/*** ===== 鼠标跟随光斑（链接型卡片） =====
+   只有 a.card 参与：文章卡/分类卡/系列卡都是可点的，光标移上去本来就该有反馈；
+   侧栏 widget 那种纯展示的 div.card 不参与，免得满屏光斑。
+   --mx / --my 由 scripts/card-glow.js 写入（百分比），这里只负责画。
+   默认 opacity 0，靠 [data-glow] 开关，配合 transition 淡入淡出。 ***/
+/* 覆盖两类：文章卡(.post-card)是 article 包着多个链接，
+   分类/系列卡本身就是 <a class="card">。 */
+.post-card,
+a.card.card-link {
+  position: relative;
+  isolation: isolate;
+}
+.post-card::after,
+a.card.card-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+  background: radial-gradient(
+    220px circle at var(--mx, 50%) var(--my, 50%),
+    var(--brand-soft),
+    transparent 70%
+  );
+}
+.post-card[data-glow]::after,
+a.card.card-link[data-glow]::after {
+  opacity: 1;
+}
+/* 卡片内的文字要压在光斑之上 */
+.post-card > *,
+a.card.card-link > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* 磨砂玻璃。用在首页大卡与运行时间条上。
