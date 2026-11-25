@@ -203,6 +203,9 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
     let frame = 0;
     let last = 0;
     let visible = true;
+    // 点击跳转的锁：平滑滚动期间由点击方持有，滚完才让 scroll 高亮接管
+    let locked = false;
+    let unlockTimer = 0;
 
     // 航线几何：直线段 → 在帆船处向右凸出 → 回到直线
     function draw() {
@@ -252,6 +255,9 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
     }
 
     function pick() {
+      // 点击跳转期间不让滚动高亮接管，否则平滑滚动的每一帧都会重算，
+      // 路径上的标题会把高亮一路带偏，最后停在错位一格的位置。
+      if (locked) return;
       // 与原有逻辑一致：视口顶部 90px 以上的最后一个标题即当前章节
       let current = 0;
       for (let i = 0; i < targets.length; i++) {
@@ -320,6 +326,17 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
     });
     targets.forEach((el) => observer.observe(el));
 
+    // 用户主动滚动（滚轮/触摸/键盘）就立刻交还控制权，
+    // 否则点击跳转的锁会挡住接下来所有的手动滚动高亮。
+    const releaseLock = () => {
+      if (!locked) return;
+      locked = false;
+      clearTimeout(unlockTimer);
+    };
+    window.addEventListener('wheel', releaseLock, { passive: true });
+    window.addEventListener('touchstart', releaseLock, { passive: true });
+    window.addEventListener('keydown', releaseLock);
+
     // 目录自身滚出视口就停掉动画，避免后台空转
     const visibility = new IntersectionObserver(
       ([entry]) => {
@@ -363,6 +380,10 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
       visibility.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('wheel', releaseLock);
+      window.removeEventListener('touchstart', releaseLock);
+      window.removeEventListener('keydown', releaseLock);
+      clearTimeout(unlockTimer);
       if (frame) cancelAnimationFrame(frame);
     });
 
@@ -374,9 +395,37 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
         const el = targets[index];
         if (!el) return;
         event.preventDefault();
+
+        // 锁住 scroll 高亮，先把自己设成当前项，滚完再解锁。
+        // 解锁条件二选一：scrollend（现代浏览器）或超时兜底。
+        locked = true;
+        clearTimeout(unlockTimer);
         setActive(index);
-        el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
         history.replaceState(null, '', `#${a.dataset.tocLink}`);
+
+        const unlock = () => {
+          if (!locked) return;
+          locked = false;
+          // 解锁瞬间用真实位置校准一次，防止 smooth 滚动末端的几像素误差
+          pick();
+        };
+
+        if (reduced()) {
+          el.scrollIntoView({ behavior: 'auto', block: 'start' });
+          locked = false;
+          pick();
+          return;
+        }
+
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // scrollend 只在真正停下时触发，比监听 scroll 稳定；
+        // 不支持时退回定时器：按滚动距离估个合理的等待时长。
+        if ('onscrollend' in window) {
+          window.addEventListener('scrollend', unlock, { once: true });
+        }
+        const distance = Math.abs(el.getBoundingClientRect().top);
+        unlockTimer = setTimeout(unlock, Math.min(1600, 420 + distance * 0.35));
       });
     });
 
