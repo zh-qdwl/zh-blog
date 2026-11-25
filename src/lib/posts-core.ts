@@ -133,3 +133,40 @@ export function groupBySeries<T extends PostLike>(posts: T[]): SeriesGroup<T>[] 
       return lb - la;
     });
 }
+
+/**
+ * 相关文章：按标签/分类/系列的共现程度打分。
+ *
+ * 权重设计的依据：标签最能表达"这篇在讲什么"（一篇可有多个），
+ * 分类较宽泛（一个站可能只有几个分类），系列则是最强的关联
+ * （同一系列本来就是连续阅读的）。所以 series > tag > category。
+ * 同分时新的在前——旧文对当下读者的价值低于新文。
+ *
+ * 不含当前文章自身；返回前 limit 条。
+ */
+export function getRelated<T extends PostLike>(posts: T[], current: T, limit = 3): T[] {
+  const cur = current.data;
+  const curTags = new Set(cur.tags);
+
+  const scored = posts
+    .filter((p) => p.id !== current.id && !p.data.draft)
+    .map((p) => {
+      let score = 0;
+      // 同系列：强关联，但不算"同一篇"
+      if (cur.series && p.data.series === cur.series) score += 10;
+      // 共同标签：每个 3 分
+      for (const t of p.data.tags) if (curTags.has(t)) score += 3;
+      // 同分类：1 分（分类宽泛，只作为弱信号）
+      if (p.data.category === cur.category) score += 1;
+      return { post: p, score };
+    })
+    .filter((x) => x.score > 0);
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    // 同分时新文优先
+    return b.post.data.pubDate.valueOf() - a.post.data.pubDate.valueOf();
+  });
+
+  return scored.slice(0, limit).map((x) => x.post);
+}

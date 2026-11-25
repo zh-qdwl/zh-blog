@@ -6,7 +6,8 @@ import FormattedDate from '../../components/FormattedDate.astro';
 import Toc from '../../components/Toc.astro';
 import Comments from '../../components/Comments.astro';
 import { getPublishedPosts, type Post } from '../../lib/posts';
-import { getNeighbors, groupBySeries } from '../../lib/posts-core';
+import { getNeighbors, groupBySeries, getRelated } from '../../lib/posts-core';
+import { SITE_TITLE, AUTHOR } from '../../consts';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -35,10 +36,33 @@ const { title, description, pubDate, updatedDate, tags, category, series, cover 
 // 有系列时只在系列内导航（按写作顺序），否则走全站时间线
 const { prev, next } = getNeighbors(sortedPosts, post.id, series);
 const progress = series ? seriesProgress[post.id] : undefined;
+// 相关文章：按标签/分类/系列的共现度推荐，读完一篇能继续往下走
+const related = getRelated(sortedPosts, post, 3);
+
+// JSON-LD：告诉搜索引擎这是一篇文章（BlogPosting），而不是普通页面。
+// 字段只填确实有的值——author/datePublished 都是真实数据，
+// 不为了"看起来丰富"编造 publisher logo 之类的东西。
+const articleLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: title,
+  description,
+  datePublished: pubDate.toISOString(),
+  ...(updatedDate ? { dateModified: updatedDate.toISOString() } : {}),
+  author: { '@type': 'Person', name: AUTHOR },
+  ...(cover ? { image: new URL(cover, Astro.site).toString() } : {}),
+  ...(tags.length ? { keywords: tags.join(', ') } : {}),
+  ...(category ? { articleSection: category } : {}),
+  inLanguage: 'zh-CN',
+  mainEntityOfPage: { '@type': 'WebPage', '@id': new URL(Astro.url.pathname, Astro.site).toString() },
+  isPartOf: { '@type': 'Blog', name: SITE_TITLE, url: new URL('/', Astro.site).toString() },
+};
 ---
 
 {/* ogImage 传文章封面；没配封面就让 BaseLayout 用 Hero 图兜底 */}
 <BaseLayout title={title} description={description} layout="toc" ogType="article" ogImage={cover}>
+  {/* 结构化数据：set:html 直出，Astro 默认会把 {} 里的引号转义成 &quot; 让 JSON 失效 */}
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleLd)} slot="head" />
   <Toc slot="toc" headings={headings} />
 
   {/* 文章页背景壁纸：fixed 全屏铺底 + 低透明度，正文卡片半透明垫底保证可读 */}
@@ -73,6 +97,21 @@ const progress = series ? seriesProgress[post.id] : undefined;
       <Content />
     </div>
     <Comments />
+    {related.length > 0 && (
+      <section class="related" aria-labelledby="related-title">
+        <h2 id="related-title" class="related-title">相关内容</h2>
+        <ul class="related-list">
+          {related.map((r) => (
+            <li>
+              <a href={`/blog/${r.id}/`}>
+                <span class="r-title">{r.data.title}</span>
+                <span class="r-desc">{r.data.description}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
     {(prev || next) && (
       <nav class="post-nav" aria-label="上一篇与下一篇">
         {prev ? (
@@ -164,6 +203,57 @@ const progress = series ? seriesProgress[post.id] : undefined;
   .sb-pos {
     color: var(--text-soft);
     font-size: 0.8rem;
+  }
+  /* 相关文章：比上下篇更轻，视觉上不抢主次 */
+  .related {
+    margin-top: 44px;
+    padding-top: 26px;
+    border-top: 1px solid var(--border);
+  }
+  .related-title {
+    margin: 0 0 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+  .related-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .related-list a {
+    display: block;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .related-list a:hover {
+    border-color: var(--brand);
+    background: var(--bg-soft);
+    text-decoration: none;
+  }
+  .r-title {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+  .r-desc {
+    margin-top: 3px;
+    font-size: 0.84rem;
+    color: var(--text-soft);
+    line-height: 1.5;
+    /* 摘要限两行，避免长描述把区块撑高 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .post-nav {
     display: grid;

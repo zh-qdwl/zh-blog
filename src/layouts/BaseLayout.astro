@@ -70,6 +70,8 @@ const ogImageUrl = new URL(ogImage ?? HERO_IMAGE, Astro.site);
         document.documentElement.setAttribute('data-theme', theme);
       })();
     </script>
+    {/* 页面级自定义 head 内容（如文章页的 JSON-LD 结构化数据） */}
+    <slot name="head" />
   </head>
   <body>
     <Header transparent={hasHero} />

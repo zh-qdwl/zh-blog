@@ -244,3 +244,63 @@ describe('groupBySeries', () => {
     expect(groupBySeries([])).toEqual([]);
   });
 });
+
+// ===== getRelated =====
+
+import { getRelated } from './posts-core';
+
+function rel(id: string, tags: string[], category = '教程', series?: string, date = '2026-08-01'): PostLike {
+  return {
+    id,
+    data: {
+      title: id,
+      description: '',
+      pubDate: new Date(date),
+      tags,
+      category,
+      pinned: false,
+      featured: false,
+      draft: false,
+      ...(series ? { series } : {}),
+    },
+  };
+}
+
+describe('getRelated', () => {
+  it('共同标签越多排越前', () => {
+    const cur = rel('cur', ['tmux', 'Linux', '教程']);
+    const all = [cur, rel('one', ['tmux']), rel('two', ['tmux', 'Linux'])];
+    expect(getRelated(all, cur).map((p) => p.id)).toEqual(['two', 'one']);
+  });
+
+  it('同系列比同标签权重更高', () => {
+    const cur = rel('cur', ['a'], '教程', 'S');
+    const all = [cur, rel('tagOnly', ['a']), rel('sameSeries', ['zzz'], '教程', 'S')];
+    expect(getRelated(all, cur)[0].id).toBe('sameSeries');
+  });
+
+  it('同分类权重最低，仅作为弱信号', () => {
+    const cur = rel('cur', ['a'], '教程');
+    const all = [cur, rel('catOnly', [], '教程'), rel('tagMatch', ['a'], '其他')];
+    expect(getRelated(all, cur).map((p) => p.id)).toEqual(['tagMatch', 'catOnly']);
+  });
+
+  it('排除自身、排除无任何关联的文章、排除草稿', () => {
+    const cur = rel('cur', ['a']);
+    const draft = { ...rel('draft', ['a']), data: { ...rel('draft', ['a']).data, draft: true } };
+    const all = [cur, rel('unrelated', ['zzz'], '其他'), draft];
+    expect(getRelated(all, cur)).toEqual([]);
+  });
+
+  it('同分时新文章优先', () => {
+    const cur = rel('cur', ['a']);
+    const all = [cur, rel('old', ['a'], '教程', undefined, '2026-01-01'), rel('new', ['a'], '教程', undefined, '2026-06-01')];
+    expect(getRelated(all, cur).map((p) => p.id)).toEqual(['new', 'old']);
+  });
+
+  it('limit 生效', () => {
+    const cur = rel('cur', ['a']);
+    const all = [cur, rel('x1', ['a']), rel('x2', ['a']), rel('x3', ['a']), rel('x4', ['a'])];
+    expect(getRelated(all, cur, 2)).toHaveLength(2);
+  });
+});

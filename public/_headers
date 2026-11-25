@@ -1,18 +1,28 @@
+# ===== 安全响应头 =====
+# Cloudflare Pages 的 _headers 规则是「按路径块累加」，同名头只有最后一条生效，
+# 所以在每个路径块里各自带上。用 /* 兜底会与 /_astro/* 拼出双 Cache-Control
+# （踩过这个坑：两个 max-age 拼接后浏览器行为未定义），所以下面按路径分组写。
+
 # 带内容哈希的静态资源：文件名变了 URL 就变，可以放心永久缓存
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
 
-# 图片：内容更新频率极低，长缓存 + 允许浏览器陈旧期间后台校验
+# 图片与图标：内容更新频率极低，长缓存 + 允许浏览器陈旧期间后台校验
 /*.webp
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+  X-Content-Type-Options: nosniff
 /*.png
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
-/favicon.svg
+  X-Content-Type-Options: nosniff
+
+# 第三方压缩脚本：同样长缓存，并阻止浏览器按内容猜类型
+/live2d.min.js
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+  X-Content-Type-Options: nosniff
 
 # HTML 与 RSS：永远走校验（ETag），保证发布后立刻可见。
-# 注意不能用 /* 兜底——它会和 /_astro/* 同时命中并拼出双 max-age，
-# 所以这里枚举所有 HTML 页面路径（与 _astro 不重叠）
+# 注意不能用 /* 兜底——见文件头注释。
 /
 /rss.xml
 /search.json
@@ -27,9 +37,20 @@
 /categories
 /categories/
 /categories/*
+/series
+/series/
+/series/*
 /tags
 /tags/
 /tags/*
 /friends
 /guestbook
   Cache-Control: public, max-age=0, must-revalidate
+  # 禁止浏览器猜 MIME：防止把无扩展名资源当成可执行类型
+  X-Content-Type-Options: nosniff
+  # 只在本站范围发送 referrer，跨站时不泄露完整 URL（含搜索词等）
+  Referrer-Policy: strict-origin-when-cross-origin
+  # 显式关闭本站不用到的设备权限，减少第三方脚本滥用的面
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  # 禁止被别的站点用 iframe 嵌套（防点击劫持）。本站自己没有嵌套需求。
+  X-Frame-Options: SAMEORIGIN
