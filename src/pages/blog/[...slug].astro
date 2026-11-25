@@ -31,13 +31,14 @@ type Props = {
 
 const { post, seriesProgress, sortedPosts } = Astro.props as Props;
 const { Content, headings } = await render(post);
-const { title, description, pubDate, updatedDate, tags, category, series } = post.data;
+const { title, description, pubDate, updatedDate, tags, category, series, cover } = post.data;
 // 有系列时只在系列内导航（按写作顺序），否则走全站时间线
 const { prev, next } = getNeighbors(sortedPosts, post.id, series);
 const progress = series ? seriesProgress[post.id] : undefined;
 ---
 
-<BaseLayout title={title} description={description} layout="toc">
+{/* ogImage 传文章封面；没配封面就让 BaseLayout 用 Hero 图兜底 */}
+<BaseLayout title={title} description={description} layout="toc" ogType="article" ogImage={cover}>
   <Toc slot="toc" headings={headings} />
 
   {/* 文章页背景壁纸：fixed 全屏铺底 + 低透明度，正文卡片半透明垫底保证可读 */}

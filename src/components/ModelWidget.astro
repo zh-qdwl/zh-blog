@@ -46,7 +46,12 @@ const MODELS = [
     if (l2dLoading) { return; } // onload 后由 mount 逻辑接管
     l2dLoading = true;
     const s = document.createElement('script');
-    s.src = 'https://fastly.jsdelivr.net/gh/stevenjoezhang/live2d-widget/live2d.min.js';
+    // 本地托管，不走 CDN：
+    // 1) 这个库上游在 master 上随时会改（我们就被 2.1.00 改过 loadlive2d 用法），
+    //    无版本号引用等于把线上稳定性押在别人一次 push 上；
+    // 2) 少一个跨域往返，国内访问更稳。
+    // 文件是 upstream 构建产物原样保存，版本 2.1.00_1。
+    s.src = '/live2d.min.js';
     s.onload = () => {
       l2dReady = true;
       l2dLoading = false;
@@ -135,13 +140,30 @@ const MODELS = [
   const urlMode = new URLSearchParams(location.search).get('kanban');
   const savedMode = urlMode ?? (localStorage.getItem(KEY_MODE) ?? '2d'); // 默认显示
   currentSkin = getSavedSkin();
+
+  // 看板娘要拉 148KB 库 + 约 1.5MB 模型贴图，和首屏 LCP 抢带宽不划算。
+  // 等页面 load（所有关键资源就绪）再挂载：用户滚到左下角时画面已就绪，
+  // 观感没有差别，但首屏的带宽全部让给了 Hero 图和正文。
+  // 已经是 load 之后（脚本延迟执行）就直接跑，别白等。
+  function boot() {
+    ensureLib(() => mount(currentSkin!));
+  }
+  function startWhenIdle() {
+    if (document.readyState === 'complete') {
+      // 再让一帧，确保首屏绘制已经交给合成器
+      requestAnimationFrame(() => setTimeout(boot, 120));
+      return;
+    }
+    window.addEventListener('load', () => setTimeout(boot, 120), { once: true });
+  }
+
   if (w) {
     if (savedMode === 'off') {
       w.dataset.mode = 'off';
       document.getElementById('ms-toggle')!.textContent = '+';
       setActionsVisible(false);
     } else {
-      ensureLib(() => mount(currentSkin!));
+      startWhenIdle();
     }
   }
 </script>

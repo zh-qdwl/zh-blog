@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar.astro';
 import SearchPanel from '../components/SearchPanel.astro';
 import ModelWidget from '../components/ModelWidget.astro';
 import FloatingActions from '../components/FloatingActions.astro';
-import { SITE_TITLE, SITE_DESCRIPTION, HERO_TONE } from '../consts';
+import { SITE_TITLE, SITE_DESCRIPTION, HERO_TONE, HERO_IMAGE } from '../consts';
 import '../styles/global.css';
 
 interface Props {
@@ -13,8 +13,12 @@ interface Props {
   description?: string;
   /** sidebar = 左侧栏 + 内容；toc = 内容 + 右目录；plain = 居中单栏 */
   layout?: 'sidebar' | 'toc' | 'plain';
+  /** 分享卡片的图。文章页传自己的封面，其余页面留空用 Hero 兜底 */
+  ogImage?: string;
+  /** 文章页用 article，其余用 website */
+  ogType?: 'website' | 'article';
 }
-const { title, description, layout = 'plain' } = Astro.props;
+const { title, description, layout = 'plain', ogImage, ogType = 'website' } = Astro.props;
 // 有 Hero 的页面：Hero 顶到 y=0，导航转成透明浮层压在图上
 const hasHero = Astro.slots.has('hero');
 // HERO_TONE 写在 <html> 上而不是 .hero 上：透明导航要用同一套 --hero-* 令牌，
@@ -22,6 +26,9 @@ const hasHero = Astro.slots.has('hero');
 const pageTitle = title ? `${title} · ${SITE_TITLE}` : SITE_TITLE;
 const pageDesc = description ?? SITE_DESCRIPTION;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+// og:image 必须是绝对地址——微信/Telegram 等抓取方不解析相对路径。
+// 没传就从 Hero 图兜底，保证每个页面都有分享缩略图。
+const ogImageUrl = new URL(ogImage ?? HERO_IMAGE, Astro.site);
 ---
 
 <!doctype html>
@@ -35,10 +42,23 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="description" content={pageDesc} />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDesc} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={SITE_TITLE} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:alt" content={pageDesc} />
+    <meta property="og:locale" content="zh_CN" />
+    <!-- Telegram / X / Discord 读 twitter:card；微信读上面的 og:* -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDesc} />
+    <meta name="twitter:image" content={ogImageUrl} />
     <meta name="generator" content={Astro.generator} />
+    {/* Hero 图是首页 LCP 元素。浏览器要解析到 <img> 才开始下载，
+        这里提前声明，省掉几百毫秒的发现延迟。只在真有 Hero 的页面输出。 */}
+    {hasHero && <link rel="preload" as="image" href={HERO_IMAGE} fetchpriority="high" />}
     <!-- 进入页面前先设置主题，避免深浅色闪烁 -->
     <script is:inline>
       // 包一层 IIFE：这是经典脚本（is:inline），顶层 const 会进入全局词法作用域。
