@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { AUTHOR } from '../consts';
+import FriendLinks from '../components/FriendLinks.astro';
+import FriendApply from '../components/FriendApply.astro';
+import { AUTHOR, FRIEND_LINKS } from '../consts';
 ---
 
 <BaseLayout title="关于" description="关于我" layout="plain">
@@ -14,6 +16,23 @@ import { AUTHOR } from '../consts';
       <h2>联系我</h2>
       <p>可以在 GitHub 上找到我，或者通过邮件联系。也欢迎去 <a href="/guestbook">留言页</a> 找我。</p>
     </div>
+
+    {/* 友链放在正文之外：它是一块独立的卡片区，不该被 .prose 的段落样式管着 */}
+    <section class="friends-section" aria-labelledby="friends-title">
+      <h2 id="friends-title" class="section-heading">小伙伴们</h2>
+      {FRIEND_LINKS.length > 0 ? (
+        <FriendLinks />
+      ) : (
+        <p class="friends-empty">
+          这里还空着。如果你也在写博客，欢迎<a href="#friend-apply-title">交换友链</a>。
+        </p>
+      )}
+      <p class="friends-more">
+        <a href="/friends">查看友情链接页 →</a>
+      </p>
+    </section>
+
+    <FriendApply />
   </article>
 </BaseLayout>
 
@@ -21,5 +40,24 @@ import { AUTHOR } from '../consts';
   .article-header h1 {
     font-size: 2rem;
     margin: 0 0 24px;
+  }
+  .friends-section {
+    margin: 44px 0 0;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+  .section-heading {
+    margin: 0 0 18px;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .friends-empty {
+    margin: 0;
+    color: var(--text-soft);
+    line-height: 1.75;
+  }
+  .friends-more {
+    margin: 18px 0 0;
+    font-size: 0.88rem;
   }
 </style>
