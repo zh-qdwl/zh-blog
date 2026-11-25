@@ -1,11 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageBlock from '../../components/PageBlock.astro';
 import { getCategories } from '../../lib/posts';
 
 const categories = await getCategories();
 ---
 
 <BaseLayout title="分类" description="按分类浏览全部文章" layout="sidebar">
+  <PageBlock variant="wide">
   <h1 class="page-title">分类 <span class="count">{categories.length}</span></h1>
   <div class="grid">
     {categories.map((c) => (
@@ -15,6 +17,7 @@ const categories = await getCategories();
       </a>
     ))}
   </div>
+  </PageBlock>
 </BaseLayout>
 
 <style>

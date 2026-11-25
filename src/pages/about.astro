@@ -2,10 +2,14 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FriendLinks from '../components/FriendLinks.astro';
 import FriendApply from '../components/FriendApply.astro';
+import ContactCard from '../components/ContactCard.astro';
+import Comments from '../components/Comments.astro';
+import PageBlock from '../components/PageBlock.astro';
 import { AUTHOR, FRIEND_LINKS } from '../consts';
 ---
 
 <BaseLayout title="关于" description="关于我" layout="plain">
+  <PageBlock variant="narrow">
   <article>
     <header class="article-header">
       <h1>关于</h1>
@@ -33,7 +37,11 @@ import { AUTHOR, FRIEND_LINKS } from '../consts';
     </section>
 
     <FriendApply />
-  </article>
+
+    <ContactCard title="联系我" subject="来自关于页" />
+    <Comments />
+    </article>
+  </PageBlock>
 </BaseLayout>
 
 <style>

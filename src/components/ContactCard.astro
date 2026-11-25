@@ -1,0 +1,177 @@
+---
+// 邮件联系卡片。
+//
+// 为什么用 mailto 而不是站内表单：站内表单需要一个后端来真正发信
+// （Worker + SendGrid/Resend 的 key），而 mailto 是纯前端的，
+// 点一下就能调起访客自己的邮件客户端，正文带好主题和模板。
+// 缺点也写在这里：访客没配邮件客户端时 mailto 会没反应，
+// 所以卡片里同时把邮箱地址明文显示出来，可以手动复制。
+import { SOCIAL } from '../consts';
+
+interface Props {
+  /** 邮件主题，便于你在收件箱里分流 */
+  subject?: string;
+  /** 卡片标题 */
+  title?: string;
+}
+
+const { subject = '来自博客的留言', title = '发邮件' } = Astro.props;
+const email = SOCIAL.email;
+
+// 正文预填一个模板：告诉对方写什么，比空邮件更容易收到有效信息
+const body = [
+  '你好，我在你的博客上看到这个联系方式。',
+  '',
+  '我想聊的是：',
+  '',
+  '',
+  '——',
+  '（可选）我的站点：',
+].join('\n');
+
+const mailto = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+---
+
+<section class="contact-card" aria-labelledby="contact-title">
+  <div class="contact-head">
+    <h2 id="contact-title" class="contact-title">{title}</h2>
+    <p class="contact-hint">不想公开留言的话，直接发邮件也行。</p>
+  </div>
+
+  <div class="contact-row">
+    <code class="contact-email">{email}</code>
+    <button class="contact-copy" type="button" data-copy-email={email}>复制</button>
+  </div>
+
+  <a class="contact-btn" href={mailto}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+    </svg>
+    打开邮件客户端
+  </a>
+
+  <p class="contact-note">
+    如果点击没反应，说明这台设备没有配置邮件客户端——直接复制上面的地址即可。
+  </p>
+</section>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('[data-copy-email]');
+  if (btn) {
+    const email = btn.dataset.copyEmail || '';
+    btn.addEventListener('click', async () => {
+      const done = () => {
+        const old = btn.textContent;
+        btn.textContent = '已复制';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = old;
+          btn.disabled = false;
+        }, 1500);
+      };
+      try {
+        await navigator.clipboard.writeText(email);
+        done();
+      } catch {
+        // http 环境下 clipboard 不可用，退回 execCommand
+        const ta = document.createElement('textarea');
+        ta.value = email;
+        ta.style.cssText = 'position:fixed;top:-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          done();
+        } catch {
+          /* 失败就算了，地址是明文，用户能手动选 */
+        }
+        ta.remove();
+      }
+    });
+  }
+</script>
+
+<style>
+  .contact-card {
+    margin-top: 36px;
+    padding: 20px 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--bg-soft);
+  }
+  .contact-head {
+    margin-bottom: 16px;
+  }
+  .contact-title {
+    margin: 0 0 6px;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .contact-hint {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    line-height: 1.6;
+  }
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .contact-email {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    font-size: 0.88rem;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .contact-copy {
+    flex: none;
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .contact-copy:hover:not(:disabled) {
+    border-color: var(--brand);
+    color: var(--link);
+  }
+  .contact-copy:disabled {
+    color: var(--text-soft);
+    cursor: default;
+  }
+  .contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid var(--brand);
+    border-radius: 8px;
+    background: var(--brand-soft);
+    color: var(--link);
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+  }
+  .contact-btn:hover {
+    background: var(--brand);
+    color: var(--brand-ink);
+    text-decoration: none;
+  }
+  .contact-note {
+    margin: 12px 0 0;
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+</style>

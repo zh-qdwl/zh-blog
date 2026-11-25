@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageBlock from '../components/PageBlock.astro';
 import { getArchive } from '../lib/posts';
 import { monthDayUTC, estimateReadMinutes } from '../lib/format';
 
@@ -9,6 +10,7 @@ const total = groups.reduce((n, g) => n + g.posts.length, 0);
 ---
 
 <BaseLayout title="归档" description="按年份浏览全部文章" layout="sidebar">
+  <PageBlock variant="wide">
   <h1 class="page-title">归档 <span class="count">{total} 篇</span></h1>
 
   {groups.map((group) => (
@@ -30,6 +32,7 @@ const total = groups.reduce((n, g) => n + g.posts.length, 0);
       </ul>
     </section>
   ))}
+  </PageBlock>
 </BaseLayout>
 
 <style>

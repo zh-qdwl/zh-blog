@@ -1,0 +1,45 @@
+---
+// 页面内容容器（最小侵入版）。
+//
+// 存在的理由：此前各页没有统一的宽度约束，靠 layout 的默认值兜着，
+// 结果关于/留言页 720px、列表页 868px、文章页 888px，页面之间切换时
+// 内容宽度会跳一下。
+//
+// 用法是包一层，不改各页原有的标题结构：
+//   <PageBlock variant="wide">
+//     <h1 class="page-title">分类 <span class="count">4</span></h1>
+//     ...
+//   </PageBlock>
+//
+// variant:
+//   narrow —— 以文字阅读为主（关于、留言），收窄到 --maxw-prose
+//   wide   —— 列表 / 卡片页（默认）
+interface Props {
+  variant?: 'narrow' | 'wide';
+  /** 页面末尾的附加区（如评论区），与正文留出固定间距 */
+  footerGap?: boolean;
+}
+
+const { variant = 'wide', footerGap = false } = Astro.props;
+---
+
+<div class:list={['page-block', `is-${variant}`, footerGap && 'has-footer-gap']}>
+  <slot />
+</div>
+
+<style>
+  .page-block {
+    margin: 0 auto;
+    min-width: 0;
+  }
+  .page-block.is-wide {
+    max-width: 100%;
+  }
+  .page-block.is-narrow {
+    max-width: var(--maxw-prose);
+  }
+  /* 末尾附加区统一留白，避免评论区紧贴上一块内容 */
+  .page-block.has-footer-gap > :last-child {
+    margin-bottom: 0;
+  }
+</style>

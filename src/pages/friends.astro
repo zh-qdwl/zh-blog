@@ -2,12 +2,15 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FriendLinks from '../components/FriendLinks.astro';
 import FriendApply from '../components/FriendApply.astro';
+import Comments from '../components/Comments.astro';
+import PageBlock from '../components/PageBlock.astro';
 import { FRIEND_LINKS } from '../consts';
 
 const hasFriends = FRIEND_LINKS.length > 0;
 ---
 
 <BaseLayout title="友情链接" description="友情链接与朋友们" layout="sidebar">
+  <PageBlock variant="wide">
   <h1 class="page-title">友情链接</h1>
 
   {hasFriends ? (
@@ -19,6 +22,8 @@ const hasFriends = FRIEND_LINKS.length > 0;
   )}
 
   <FriendApply />
+  <Comments />
+  </PageBlock>
 </BaseLayout>
 
 <style>

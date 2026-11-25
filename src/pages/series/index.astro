@@ -1,11 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageBlock from '../../components/PageBlock.astro';
 import { getSeries } from '../../lib/posts';
 
 const series = await getSeries();
 ---
 
 <BaseLayout title="系列" description="系列专栏：围绕一个主题连续写下去" layout="sidebar">
+  <PageBlock variant="wide">
   <h1 class="page-title">系列 <span class="count">{series.length}</span></h1>
   {series.length === 0 && (
     <p class="empty">还没有系列。给文章 frontmatter 加 <code>series: 系列名</code> 就会出现在这里。</p>
@@ -18,6 +20,7 @@ const series = await getSeries();
       </a>
     ))}
   </div>
+  </PageBlock>
 </BaseLayout>
 
 <style>

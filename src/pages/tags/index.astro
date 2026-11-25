@@ -1,11 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import PageBlock from '../../components/PageBlock.astro';
 import { getTags } from '../../lib/posts';
 
 const tags = await getTags();
 ---
 
 <BaseLayout title="标签" description="按标签浏览全部文章" layout="sidebar">
+  <PageBlock variant="wide">
   <h1 class="page-title">标签 <span class="count">{tags.length}</span></h1>
   <div class="cloud">
     {tags.map((t) => (
@@ -14,6 +16,7 @@ const tags = await getTags();
       </a>
     ))}
   </div>
+  </PageBlock>
 </BaseLayout>
 
 <style>
