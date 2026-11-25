@@ -273,6 +273,25 @@ a.tag:hover {
 .prose {
   font-size: 1.02rem;
 }
+
+/* 选区开花的画布：铺满正文，压在文字下面。
+   .prose 需要 position: relative 才能给 canvas 定位。 */
+.prose.has-flower-canvas {
+  position: relative;
+  isolation: isolate;
+}
+.prose.has-flower-canvas > * {
+  position: relative;
+  z-index: 1;
+}
+.flower-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
 .prose h2 {
   margin-top: 2em;
   font-size: 1.5rem;
@@ -345,3 +364,54 @@ a.tag:hover {
    html 的 scroll-padding-top 已经统一处理了锚点跳转的头部偏移，
    若标题再叠加 scroll-margin-top，两者会相加（76+76=152px），
    导致跳转位置远离固定头部，还会让 Toc.astro 的滚动高亮判断错位。 */
+
+/* ===== 点阵加载指示器（评论区懒加载时的占位）=====
+   20×20 点阵，两个焦点扫过时点按距离放大变深。
+   尺寸：19 列间距 × 18px + 单点宽度，约 360px。 */
+.dot-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 44px 0;
+  min-height: 220px;
+}
+.dot-loader__grid {
+  display: grid;
+  grid-template-columns: repeat(20, 6px);
+  grid-auto-rows: 6px;
+  gap: 12px;
+  /* 点阵整体略向右偏，视觉重心更稳 */
+  transform: translateX(3px);
+}
+.dot-loader__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  transform: scale(0.333);
+  will-change: transform, background-color;
+}
+.dot-loader__label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  letter-spacing: 0.02em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dot-loader__dot {
+    will-change: auto;
+  }
+}
+@media (max-width: 640px) {
+  .dot-loader__grid {
+    grid-template-columns: repeat(20, 5px);
+    grid-auto-rows: 5px;
+    gap: 9px;
+  }
+  .dot-loader__dot {
+    width: 5px;
+    height: 5px;
+  }
+}

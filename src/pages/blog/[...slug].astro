@@ -221,3 +221,19 @@ const progress = series ? seriesProgress[post.id] : undefined;
     }
   }
 </style>
+
+<script>
+  import { mountSelectionFlower } from '../../scripts/selection-flower.js';
+
+  // 只在文章正文上挂载。字体加载完再收集文本节点，
+  // 否则 offsetTop 之类的几何会按回退字体算，花开的位置会偏。
+  const prose = document.querySelector('.prose');
+  if (prose) {
+    const start = () => mountSelectionFlower(prose);
+    if (document.fonts && document.fonts.status !== 'loaded') {
+      document.fonts.ready.then(start).catch(start);
+    } else {
+      start();
+    }
+  }
+</script>

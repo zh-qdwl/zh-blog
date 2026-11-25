@@ -29,9 +29,48 @@ const cdn = `https://cdn.jsdelivr.net/npm/twikoo@${TWIKOO_VERSION}/dist/twikoo.m
     if (!host) return;
 
     let loaded = false;
+    // 加载指示器：懒加载那几秒原本是纯空白，这里用一个点阵动画填上。
+    // 脚本加载失败/超时也会移除，不能让占位一直挂着。
+    let loader = null;
+    let loaderTimer = 0;
+    let loaderShownAt = 0;
+
+    function showLoader() {
+      if (loader || !window.__createDotLoader) return;
+      try {
+        loader = window.__createDotLoader(host);
+        loaderShownAt = Date.now();
+      } catch (e) {
+        // 指示器只是装饰，坏了不影响评论本身
+        loader = null;
+        return;
+      }
+      // 15 秒兜底：网络异常时别让点阵一直转
+      loaderTimer = window.setTimeout(hideLoader, 15000);
+    }
+
+    function hideLoader() {
+      window.clearTimeout(loaderTimer);
+      loaderTimer = 0;
+      if (!loader) return;
+      // 至少显示 600ms，否则评论加载很快时点阵只是一闪，
+      // 反而像页面闪了一下，比不显示还糟。
+      const elapsed = Date.now() - loaderShownAt;
+      const wait = Math.max(0, 600 - elapsed);
+      const done = () => {
+        if (loader) {
+          loader.destroy();
+          loader = null;
+        }
+      };
+      if (wait) window.setTimeout(done, wait);
+      else done();
+    }
+
     function load() {
       if (loaded) return;
       loaded = true;
+      showLoader();
       const s = document.createElement('script');
       s.src = cdn;
       s.onload = function () {
@@ -47,6 +86,19 @@ const cdn = `https://cdn.jsdelivr.net/npm/twikoo@${TWIKOO_VERSION}/dist/twikoo.m
         // 不存在的地域，所以留空时干脆不传这个键。
         if (region) opts.region = region;
         window.twikoo.init(opts);
+        // 不等 init 的返回值（不同版本返回 Promise 或 undefined），
+        // 直接盯 DOM：评论真正渲染出来（有 .tk-comments 或任何子节点）就收起点阵。
+        var stopWatch = function () {
+          hideLoader();
+          if (watcher) watcher.disconnect();
+          if (initTimer) clearTimeout(initTimer);
+        };
+        var watcher = new MutationObserver(function () {
+          if (host.querySelector('.tk-comments, .tk-comment, .tk-submit')) stopWatch();
+        });
+        watcher.observe(host, { childList: true, subtree: true });
+        // 评论数为 0 时 Twikoo 也会渲染提示，用超时兜底；总比一直转好
+        var initTimer = setTimeout(stopWatch, 4000);
         // 带 #评论id 打开页面时，评论区是懒加载 + 异步渲染的：浏览器解析
         // hash 时锚点元素还不存在，原生跳转不会发生。init 完成后用
         // MutationObserver 等那条评论真正渲染出来，再手动滚过去。

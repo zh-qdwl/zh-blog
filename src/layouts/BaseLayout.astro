@@ -70,6 +70,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <SearchPanel />
     <script>
       import '../scripts/card-glow.js';
+      import { createDotLoader } from '../scripts/dot-loader.js';
+      // CommentsTwikoo 是 is:inline 脚本，无法 import，只能走全局。
+      // 只暴露这一个工厂函数，不挂整个模块。
+      window.__createDotLoader = createDotLoader;
     </script>
     <ModelWidget />
     <FloatingActions />
