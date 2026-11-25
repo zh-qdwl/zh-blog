@@ -1,0 +1,3 @@
+# 第三方压缩产物：必须按二进制处理，否则 git 的换行转换
+# （core.autocrlf / text=auto）可能改写字节，破坏校验和或让压缩代码失效。
+public/live2d.min.js binary
