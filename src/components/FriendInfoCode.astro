@@ -1,0 +1,210 @@
+---
+// 换链信息的多格式展示：HTML / Markdown / 纯文本 三种，可切换、可复制。
+//
+// 为什么需要三种格式：换友链的人用的建站工具不一样——
+// Hugo/Hexo 系多半贴 HTML，VitePress/VuePress 用 Markdown，
+// 有的人直接在留言里贴纯文本。给一种就等于让人自己拼。
+import { FRIEND_LINK_INFO } from '../consts';
+
+const { name, href, desc, avatar } = FRIEND_LINK_INFO;
+
+const formats = [
+  {
+    id: 'html',
+    label: 'HTML',
+    code: `<a href="${href}" target="_blank" rel="noopener">
+  <img src="${avatar}" alt="${name}" width="56" height="56">
+  ${name} — ${desc}
+</a>`,
+  },
+  {
+    id: 'md',
+    label: 'Markdown',
+    code: `[![${name}](${avatar})](${href})`,
+  },
+  {
+    id: 'text',
+    label: '纯文本',
+    code: `名称：${name}
+链接：${href}
+头像：${avatar}
+简介：${desc}`,
+  },
+];
+---
+
+<div class="fmt" data-fmt>
+  <div class="fmt-tabs" role="tablist" aria-label="换链信息格式">
+    {formats.map((f, i) => (
+      <button
+        class:list={['fmt-tab', i === 0 && 'is-active']}
+        type="button"
+        role="tab"
+        aria-selected={i === 0 ? 'true' : 'false'}
+        data-fmt-tab={f.id}
+      >{f.label}</button>
+    ))}
+    <button class="fmt-copy" type="button" data-fmt-copy>复制</button>
+  </div>
+
+  {formats.map((f, i) => (
+    <pre
+      class:list={['fmt-code', i !== 0 && 'is-hidden']}
+      data-fmt-panel={f.id}
+      role="tabpanel"
+      tabindex="0"
+    ><code>{f.code}</code></pre>
+  ))}
+</div>
+
+<script>
+  // 每个 fmt 区块独立工作（关于页和 /friends 页各有一个）
+  document.querySelectorAll('[data-fmt]').forEach((root) => {
+    const el = root as HTMLElement;
+    const tabs = [...el.querySelectorAll<HTMLButtonElement>('[data-fmt-tab]')];
+    const panels = [...el.querySelectorAll<HTMLElement>('[data-fmt-panel]')];
+    const copy = el.querySelector<HTMLButtonElement>('[data-fmt-copy]');
+
+    const current = (): string => {
+      const active = tabs.find((t) => t.classList.contains('is-active'));
+      return active?.dataset.fmtTab ?? tabs[0]?.dataset.fmtTab ?? '';
+    };
+
+    const select = (id: string) => {
+      tabs.forEach((t) => {
+        const on = t.dataset.fmtTab === id;
+        t.classList.toggle('is-active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      panels.forEach((p) => p.classList.toggle('is-hidden', p.dataset.fmtPanel !== id));
+    };
+
+    tabs.forEach((t) => t.addEventListener('click', () => select(t.dataset.fmtTab!)));
+
+    // 左右方向键切换，符合 tablist 的键盘习惯
+    el.querySelector('.fmt-tabs')?.addEventListener('keydown', (event) => {
+      const e = event as KeyboardEvent;
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const i = tabs.findIndex((t) => t.classList.contains('is-active'));
+      const next = e.key === 'ArrowRight' ? (i + 1) % tabs.length : (i - 1 + tabs.length) % tabs.length;
+      e.preventDefault();
+      select(tabs[next].dataset.fmtTab!);
+      tabs[next].focus();
+    });
+
+    copy?.addEventListener('click', async () => {
+      const panel = panels.find((p) => p.dataset.fmtPanel === current());
+      const text = panel?.textContent ?? '';
+      const done = () => {
+        const old = copy.textContent;
+        copy.textContent = '已复制';
+        copy.disabled = true;
+        setTimeout(() => {
+          copy.textContent = old;
+          copy.disabled = false;
+        }, 1500);
+      };
+      try {
+        await navigator.clipboard.writeText(text);
+        done();
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+          done();
+        } catch {
+          /* 复制不了就让用户手动选，代码块本身可选中 */
+        }
+        ta.remove();
+      }
+    });
+  });
+</script>
+
+<style>
+  .fmt {
+    min-width: 0;
+  }
+  .fmt-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .fmt-tab {
+    padding: 5px 12px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .fmt-tab:hover {
+    color: var(--text);
+  }
+  .fmt-tab.is-active {
+    color: var(--link);
+    background: var(--card);
+    border-color: var(--border);
+    font-weight: 600;
+  }
+  .fmt-copy {
+    margin-left: auto;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .fmt-copy:hover:not(:disabled) {
+    color: var(--link);
+    border-color: var(--brand);
+  }
+  .fmt-copy:disabled {
+    cursor: default;
+  }
+  /* 代码块：长 URL 必须能换行，否则会把容器撑破
+     （之前交换友链那两栏就是被 URL 撑变形的） */
+  .fmt-code {
+    margin: 0;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.75;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .fmt-code.is-hidden {
+    display: none;
+  }
+  .fmt-code code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+  @media (max-width: 640px) {
+    .fmt-tab {
+      padding: 5px 9px;
+      font-size: 0.76rem;
+    }
+    .fmt-code {
+      font-size: 0.75rem;
+      padding: 12px;
+    }
+  }
+</style>

@@ -1,104 +1,45 @@
 ---
-// 「交换友链」提示区。关于页和 /friends 页共用。
+// 「交换友链」区块。关于页和 /friends 页共用。
 //
-// 设计意图：换链是双向的，别人需要知道你的站点信息才能加你。
-// 所以这里同时给出「我的信息」（一键复制）和「你需要提供什么」。
-import { FRIEND_LINK_INFO, SOCIAL } from '../consts';
+// 布局演变：最初是左右两栏（我的信息 / 需要你提供）。
+// 实际渲染时长 URL 把左栏撑破、文字被裁，而且两栏并排时
+// 中间有大量留白，信息密度很低。改为单栏纵向流：
+//   说明 → 我的站点信息（多格式可复制）→ 需要你提供什么（折叠）
+import FriendInfoCode from './FriendInfoCode.astro';
+import { SOCIAL } from '../consts';
 ---
 
 <section class="friend-apply" aria-labelledby="friend-apply-title">
   <h2 id="friend-apply-title" class="apply-title">交换友链</h2>
+
   <p class="apply-intro">
-    欢迎交换友链。请先在你的站点加上本站链接，然后通过
-    {SOCIAL.email ? '邮件或' : ''} <a href="/guestbook">留言</a> 告诉我你的信息。
+    欢迎换链。把你的站点信息发我，我看到会加。下面是本站信息的三种格式，
+    挑你建站工具顺手的那种复制就行。
   </p>
 
-  <div class="apply-grid">
-    <div class="apply-block">
-      <p class="block-label">我的站点信息</p>
-      <dl class="info-list">
-        <div class="info-row">
-          <dt>名称</dt>
-          <dd><code>{FRIEND_LINK_INFO.name}</code></dd>
-        </div>
-        <div class="info-row">
-          <dt>链接</dt>
-          <dd><code>{FRIEND_LINK_INFO.href}</code></dd>
-        </div>
-        <div class="info-row">
-          <dt>头像</dt>
-          <dd><code>{FRIEND_LINK_INFO.avatar}</code></dd>
-        </div>
-        <div class="info-row">
-          <dt>简介</dt>
-          <dd><code>{FRIEND_LINK_INFO.desc}</code></dd>
-        </div>
-      </dl>
-      <button class="copy-btn" type="button" data-copy-friend data-copy-payload={JSON.stringify(FRIEND_LINK_INFO)}>
-        复制全部信息
-      </button>
-    </div>
+  <div class="apply-section">
+    <p class="block-label">我的站点信息</p>
+    <FriendInfoCode />
+  </div>
 
-    <div class="apply-block">
-      <p class="block-label">需要你提供</p>
+  <div class="apply-section">
+    <details class="apply-details">
+      <summary>需要你提供什么</summary>
       <ul class="require-list">
-        <li><strong>站点名称</strong>——你的博客叫什么</li>
-        <li><strong>站点链接</strong>——https 开头，能正常访问</li>
-        <li><strong>头像地址</strong>——正方形图片，建议 100×100 以上</li>
-        <li><strong>一句话简介</strong>——20 字以内，说明你写什么</li>
+        <li><strong>站点名称</strong>：你的博客叫什么</li>
+        <li><strong>站点链接</strong>：https 开头，能正常访问</li>
+        <li><strong>头像地址</strong>：正方形图片，建议 100×100 以上</li>
+        <li><strong>一句话简介</strong>：20 字以内，说明你写什么</li>
       </ul>
       <p class="note">
         内容以原创技术、生活记录为主；纯采集站、广告站、长期不更新的站点就不加了。
       </p>
-    </div>
+      <p class="note">
+        联系我：<a href="/guestbook">留言页</a> 或 <a href={`mailto:${SOCIAL.email}?subject=${encodeURIComponent('友链申请')}`}>发邮件</a>。
+      </p>
+    </details>
   </div>
 </section>
-
-<script>
-  // 复制本站换链信息。用 navigator.clipboard，失败时退回 textarea + execCommand
-  // （http 环境下 clipboard API 不可用，虽然本站是 https，但本地预览可能是 http）。
-  const btn = document.querySelector('[data-copy-friend]');
-  if (btn) {
-    const info = JSON.parse(btn.dataset.copyPayload || 'null');
-    btn.addEventListener('click', async () => {
-      const payload = [
-        `名称：${info.name}`,
-        `链接：${info.href}`,
-        `头像：${info.avatar}`,
-        `简介：${info.desc}`,
-      ].join('\n');
-
-      const done = () => {
-        const old = btn.textContent;
-        btn.textContent = '已复制';
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = old;
-          btn.disabled = false;
-        }, 1600);
-      };
-
-      try {
-        await navigator.clipboard.writeText(payload);
-        done();
-      } catch {
-        // 兜底：临时 textarea
-        const ta = document.createElement('textarea');
-        ta.value = payload;
-        ta.style.cssText = 'position:fixed;top:-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        try {
-          document.execCommand('copy');
-          done();
-        } catch {
-          /* 复制失败就什么都不做，用户还能手动选中 */
-        }
-        ta.remove();
-      }
-    });
-  }
-</script>
 
 <style>
   .friend-apply {
@@ -116,73 +57,58 @@ import { FRIEND_LINK_INFO, SOCIAL } from '../consts';
     color: var(--text-soft);
     line-height: 1.75;
   }
-  .apply-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
+  .apply-section {
+    margin-bottom: 22px;
   }
-  .apply-block {
-    padding: 18px 20px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-card);
-    background: var(--bg-soft);
+  .apply-section:last-child {
+    margin-bottom: 0;
   }
   .block-label {
-    margin: 0 0 14px;
+    margin: 0 0 12px;
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-soft);
   }
-  .info-list {
-    margin: 0 0 16px;
-  }
-  .info-row {
-    display: flex;
-    gap: 10px;
-    padding: 5px 0;
-    font-size: 0.88rem;
-    align-items: baseline;
-  }
-  .info-row dt {
-    flex: none;
-    width: 3em;
-    color: var(--text-soft);
-  }
-  .info-row dd {
-    margin: 0;
-    min-width: 0;
-    word-break: break-all;
-  }
-  .info-row code {
-    font-size: 0.85em;
-    padding: 1px 6px;
-    border-radius: 4px;
-    background: var(--code-bg, var(--background));
-  }
-  .copy-btn {
-    width: 100%;
-    padding: 8px;
+  /* 折叠：需要提供的信息默认收起，不占版面。
+     一般访客只是想知道"怎么换链"，真打算换的人才展开。 */
+  .apply-details {
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--card);
-    color: var(--text);
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    border-radius: 10px;
+    background: var(--bg-soft);
+    padding: 0;
   }
-  .copy-btn:hover:not(:disabled) {
-    border-color: var(--brand);
+  .apply-details summary {
+    padding: 13px 16px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  .apply-details summary::-webkit-details-marker {
+    display: none;
+  }
+  .apply-details summary::before {
+    content: '▸';
+    color: var(--text-soft);
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+  }
+  .apply-details[open] summary::before {
+    transform: rotate(90deg);
+  }
+  .apply-details summary:hover {
     color: var(--link);
   }
-  .copy-btn:disabled {
-    color: var(--text-soft);
-    cursor: default;
-  }
   .require-list {
-    margin: 0 0 14px;
-    padding-left: 1.2em;
+    margin: 0;
+    padding: 0 16px 0 38px;
     font-size: 0.88rem;
     line-height: 1.9;
   }
@@ -190,14 +116,12 @@ import { FRIEND_LINK_INFO, SOCIAL } from '../consts';
     color: var(--text);
   }
   .note {
-    margin: 0;
+    margin: 12px 16px 0;
     font-size: 0.82rem;
     color: var(--text-soft);
     line-height: 1.7;
   }
-  @media (max-width: 640px) {
-    .apply-grid {
-      grid-template-columns: 1fr;
-    }
+  .apply-details .note:last-child {
+    margin-bottom: 16px;
   }
 </style>
