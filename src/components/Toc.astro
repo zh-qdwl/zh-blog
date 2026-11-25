@@ -1,4 +1,6 @@
 ---
+// 目录：沿弯曲虚线航行的帆船（视觉参考 LeiBox sailing-toc，按其源码参数重写为
+// 轻量的 window 滚动版本）。只负责视觉，章节定位仍走原生锚点跳转。
 interface Heading {
   depth: number;
   slug: string;
@@ -15,13 +17,31 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 {items.length > 0 && (
   <nav class="toc" aria-label="目录">
     <p class="toc-title">目录</p>
-    <ul>
-      {items.map((h) => (
-        <li class={`depth-${h.depth}`}>
-          <a href={`#${h.slug}`} data-toc-link={h.slug}>{h.text}</a>
-        </li>
-      ))}
-    </ul>
+    <div class="toc-track" data-toc-track>
+      <!-- 航线：虚线，随当前章节位置弯出一个弧形凸起 -->
+      <svg class="toc-rail" aria-hidden="true" preserveAspectRatio="none">
+        <path class="toc-route" data-toc-route d="" />
+      </svg>
+      <!-- 帆船 + 船尾波纹 -->
+      <div class="toc-ship" data-toc-ship aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <ellipse class="wake" data-wake cx="32" cy="52" rx="24" ry="6" />
+          <ellipse class="wake" data-wake cx="32" cy="52" rx="24" ry="6" />
+          <!-- 船体 + 桅杆 + 帆：路径取自原组件图形比例 -->
+          <path d="M14 44h36l-7 10H21z" />
+          <path class="line" d="M32 44V12" />
+          <path d="M32 14l-13 26h13z" />
+          <path d="M34 18l11 22H34z" />
+        </svg>
+      </div>
+      <ul>
+        {items.map((h) => (
+          <li class={`depth-${h.depth}`}>
+            <a href={`#${h.slug}`} data-toc-link={h.slug}>{h.text}</a>
+          </li>
+        ))}
+      </ul>
+    </div>
     <button class="to-top" type="button" aria-label="回到顶部">↑ 回到顶部</button>
   </nav>
 )}
@@ -32,46 +52,101 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
     top: 76px;
     max-height: calc(100vh - 100px);
     overflow-y: auto;
-    padding: 18px;
+    padding: 18px 18px 18px 12px;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-card);
     font-size: 0.88rem;
   }
   .toc-title {
-    margin: 0 0 10px;
+    margin: 0 0 10px 8px;
     font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-soft);
   }
+  .toc-track {
+    position: relative;
+  }
+  /* 航线层：压在最左侧，不接收点击 */
+  .toc-rail {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 34px;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .toc-route {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 1.1;
+    stroke-dasharray: 3 3;
+  }
+  /* 帆船：尺寸与位移由脚本控制 */
+  .toc-ship {
+    position: absolute;
+    left: 2px;
+    top: 0;
+    width: 26px;
+    height: 26px;
+    pointer-events: none;
+    transform-origin: center;
+    will-change: transform;
+  }
+  .toc-ship svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+  .toc-ship path {
+    fill: var(--card);
+    stroke: var(--text-soft);
+    stroke-width: 1.3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .toc-ship path.line {
+    fill: none;
+  }
+  .toc-ship .wake {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 0.7;
+    opacity: 0;
+  }
   ul {
+    position: relative;
     list-style: none;
     margin: 0;
     padding: 0;
   }
   li a {
     display: block;
-    padding: 5px 10px;
-    border-left: 2px solid var(--border);
+    padding: 5px 8px;
     color: var(--text-soft);
     line-height: 1.5;
+    /* 选中项右移，和帆船凸起的位置错开，形成“船在左、字在右”的关系 */
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease;
   }
   li a:hover {
     color: var(--text);
     text-decoration: none;
   }
-  /* 滚动高亮当前章节 */
   li a[aria-current='true'] {
-    color: var(--link);
-    border-left-color: var(--brand);
-    background: var(--brand-soft);
+    color: var(--text);
     font-weight: 600;
+    transform: translateX(14px);
   }
   .depth-3 a {
-    padding-left: 24px;
+    padding-left: 20px;
     font-size: 0.84rem;
+  }
+  .depth-3 a[aria-current='true'] {
+    transform: translateX(10px);
   }
   .to-top {
     margin-top: 12px;
@@ -89,40 +164,229 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
     background: var(--bg-soft);
     border-color: var(--brand);
   }
+  @media (prefers-reduced-motion: reduce) {
+    li a {
+      transition: none;
+    }
+  }
 </style>
 
 <script is:inline>
   (function () {
-    const links = document.querySelectorAll('[data-toc-link]');
-    if (!links.length) return;
+    const nav = document.querySelector('.toc');
+    const track = document.querySelector('[data-toc-track]');
+    const route = document.querySelector('[data-toc-route]');
+    const ship = document.querySelector('[data-toc-ship]');
+    const links = [...document.querySelectorAll('[data-toc-link]')];
+    if (!nav || !track || !route || !ship || !links.length) return;
 
-    const targets = [...links]
+    const wakes = [...document.querySelectorAll('[data-wake]')];
+    const targets = links
       .map((a) => document.getElementById(a.dataset.tocLink))
       .filter(Boolean);
+    if (!targets.length) return;
 
-    function setCurrent(slug) {
-      links.forEach((a) => {
-        if (a.dataset.tocLink === slug) a.setAttribute('aria-current', 'true');
-        else a.removeAttribute('aria-current');
+    const reducedQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reduced = () => reducedQuery.matches;
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+    // 动画状态。y 是帆船中心的纵坐标，target 是它当前该去的位置。
+    let active = -1;
+    let y = 0;
+    let target = 0;
+    let velocity = 0;
+    let roll = 0;
+    let yaw = 0;
+    let phase = 0;
+    let scrollSpeed = 0;
+    let previousScroll = window.scrollY;
+    let frame = 0;
+    let last = 0;
+    let visible = true;
+
+    // 航线几何：直线段 → 在帆船处向右凸出 → 回到直线
+    function draw() {
+      const height = track.offsetHeight;
+      const bulge = 20; // 凸起最右端
+      const line = 8; // 直线所在 x
+      const center = clamp(y, 14, Math.max(14, height - 14));
+      const arm = 26; // 弧的上下跨度
+      route.setAttribute(
+        'd',
+        `M${line} 2 L${line} ${center - arm}` +
+          ` C${line} ${center - arm / 2.4} ${bulge} ${center - arm / 2.4} ${bulge} ${center}` +
+          ` C${bulge} ${center + arm / 2.4} ${line} ${center + arm / 2.4} ${line} ${center + arm}` +
+          ` L${line} ${height - 2}`
+      );
+      ship.style.transform = `translate(0px, ${center - 13}px) perspective(300px) rotateY(${yaw}deg) rotateZ(${roll}deg)`;
+      wakes.forEach((wake, index) => {
+        const progress = (phase / 2.4 + index / 2) % 1;
+        wake.setAttribute('rx', String(10 + progress * 16));
+        wake.setAttribute('ry', String(2.5 + progress * 5));
+        wake.style.opacity = String(reduced() ? 0 : Math.sin(progress * Math.PI) ** 2 * 0.5);
       });
     }
 
-    // 取当前视口内最靠上的标题作为高亮项
-    const observer = new IntersectionObserver(
-      () => {
-        let current = null;
-        for (const el of targets) {
-          if (el.getBoundingClientRect().top <= 90) current = el;
-          else break;
+    // 把帆船移到第 index 项的垂直中心
+    function aim(index, snap) {
+      const link = links[index];
+      if (!link) return;
+      target = clamp(link.offsetTop + link.offsetHeight / 2, 14, Math.max(14, track.offsetHeight - 14));
+      if (snap || reduced()) {
+        y = target;
+        velocity = roll = yaw = 0;
+        draw();
+      } else {
+        schedule();
+      }
+    }
+
+    function setActive(index) {
+      if (index === active) return;
+      active = index;
+      links.forEach((a, i) => {
+        if (i === index) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      });
+      aim(index, false);
+    }
+
+    function pick() {
+      // 与原有逻辑一致：视口顶部 90px 以上的最后一个标题即当前章节
+      let current = 0;
+      for (let i = 0; i < targets.length; i++) {
+        if (targets[i].getBoundingClientRect().top <= 90) current = i;
+        else break;
+      }
+      setActive(current);
+    }
+
+    function schedule() {
+      if (visible && !document.hidden && !frame) frame = requestAnimationFrame(tick);
+    }
+
+    function tick(now) {
+      frame = 0;
+      if (!visible || document.hidden) {
+        last = 0;
+        return;
+      }
+      const dt = Math.min(0.032, (now - (last || now)) / 1000);
+      last = now;
+
+      if (reduced()) {
+        y = target;
+        velocity = roll = yaw = 0;
+      } else {
+        phase += dt;
+        // 滚动速度驱动船身倾斜：快速划过时船会侧一点、偏一点航向
+        const scrollY = window.scrollY;
+        const speed = dt > 0 ? clamp((scrollY - previousScroll) / dt, -16000, 16000) : 0;
+        scrollSpeed += (speed - scrollSpeed) * (1 - Math.exp(-dt * 10));
+        // 弹簧：刚度 180、阻尼 24，与参考实现同参
+        velocity += (180 * (target - y) - 24 * velocity) * dt;
+        y += velocity * dt;
+        const smooth = 1 - Math.exp(-dt * 12);
+        const wantRoll =
+          clamp(velocity * 0.035 + scrollSpeed * 0.012, -20, 20) + Math.sin(phase * 1.8) * 1.4;
+        const wantYaw =
+          clamp(velocity * 0.05 + scrollSpeed * 0.06, -48, 48) + Math.sin(phase * 0.9) * 3;
+        roll += (wantRoll - roll) * smooth;
+        // 侧倾按 1/3 缩小：26px 的小船扛不住 48° 偏航
+        yaw += (wantYaw * 0.34 - yaw) * smooth;
+        if (Math.abs(target - y) < 0.1 && Math.abs(velocity) < 0.2) {
+          y = target;
+          velocity = 0;
         }
-        setCurrent(current ? current.id : targets[0].id);
-      },
-      { rootMargin: '-80px 0px -70% 0px', threshold: 0 }
-    );
+      }
+
+      previousScroll = window.scrollY;
+      draw();
+
+      const moving = Math.abs(target - y) > 0.1 || Math.abs(velocity) > 0.2;
+      // 静止后停止动画；有动效偏好时保持轻微起伏
+      if (moving || !reduced()) schedule();
+      else {
+        last = 0;
+        roll = yaw = 0;
+        draw();
+      }
+    }
+
+    // 章节高亮跟随滚动
+    const observer = new IntersectionObserver(pick, {
+      rootMargin: '-80px 0px -70% 0px',
+      threshold: 0,
+    });
     targets.forEach((el) => observer.observe(el));
 
-    document.querySelector('.to-top')?.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 目录自身滚出视口就停掉动画，避免后台空转
+    const visibility = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        last = 0;
+        previousScroll = window.scrollY;
+        if (visible) schedule();
+        else if (frame) {
+          cancelAnimationFrame(frame);
+          frame = 0;
+        }
+      },
+      { threshold: 0 }
+    );
+    visibility.observe(nav);
+
+    const onVisibility = () => {
+      last = 0;
+      previousScroll = window.scrollY;
+      if (!document.hidden) schedule();
+      else if (frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // 尺寸变化（窗口缩放、字体加载、内容变化）后重新对齐
+    let resizeFrame = 0;
+    const onResize = () => {
+      if (resizeFrame) return;
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = 0;
+        aim(active < 0 ? 0 : active, true);
+      });
+    };
+    if ('ResizeObserver' in window) new ResizeObserver(onResize).observe(track);
+    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('pagehide', () => {
+      observer.disconnect();
+      visibility.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('resize', onResize);
+      if (frame) cancelAnimationFrame(frame);
     });
+
+    reducedQuery.addEventListener?.('change', () => aim(active < 0 ? 0 : active, true));
+
+    // 点击平滑滚动到章节，同时立刻把船开过去
+    links.forEach((a, index) => {
+      a.addEventListener('click', (event) => {
+        const el = targets[index];
+        if (!el) return;
+        event.preventDefault();
+        setActive(index);
+        el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' });
+        history.replaceState(null, '', `#${a.dataset.tocLink}`);
+      });
+    });
+
+    document.querySelector('.to-top')?.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
+    });
+
+    // 首次布局
+    pick();
+    aim(active < 0 ? 0 : active, true);
+    schedule();
   })();
 </script>
